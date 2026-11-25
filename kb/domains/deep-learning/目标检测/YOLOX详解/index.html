@@ -1,0 +1,2457 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://ma18780267689-wq.github.io/vision-portfolio/kb/domains/deep-learning/%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B/YOLOX%E8%AF%A6%E8%A7%A3/">
+      
+      
+        <link rel="prev" href="../YOLOV9%E8%AF%A6%E8%A7%A3/">
+      
+      
+        <link rel="next" href="../../%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84/_index/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>YOLOX 详解 - My KB · 马志成</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="../../../../stylesheets/auto-enhance.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link rel="stylesheet" href="../../../../kb-portfolio.css"><script defer src="../../../../kb-portfolio.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#yolox" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="My KB · 马志成" class="md-header__button md-logo" aria-label="My KB · 马志成" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            My KB · 马志成
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              YOLOX 详解
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../agent/_index/" class="md-tabs__link">
+          
+  
+  
+  Agent 领域
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../_index/" class="md-tabs__link">
+          
+  
+  
+  深度学习领域知识库
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../views/world-model/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  世界模型视图
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="My KB · 马志成" class="md-nav__button md-logo" aria-label="My KB · 马志成" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    My KB · 马志成
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent 领域
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agent 领域
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/01-essence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    一、Agent的本质：从"模型"到"自主系统"
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/02-components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二、Agent的五大核心组件
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/03-build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03-build
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/04-deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    四、算力部署选型（架构师视角）
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/05-multi-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    五、多智能体系统 (Multi-Agent Systems)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/06-cost/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    六、成本优化与治理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/07-business/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    七、业务赋能策略
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/LLM%E7%9B%B8%E5%85%B3%E6%9C%AF%E8%AF%AD%E8%A7%A3%E9%87%8A/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM相关术语解释
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/Skills%E5%AE%9A%E4%B9%89/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skills定义
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/Skill%E7%BC%96%E5%86%99%E7%AC%AC%E4%B8%80%E6%80%A7%E5%8E%9F%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skill编写第一性原理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/Transformer%E6%9C%AF%E8%AF%AD%E8%AF%A6%E7%BB%86%E8%A7%A3%E9%87%8A/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/%E4%B8%BB%E6%B5%81%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E4%B8%8ETransformer%E6%A2%B3%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    主流大模型共性架构
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../agent/%E6%B5%8B%E8%AF%95%E7%9F%A5%E8%AF%86.writer-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LoRA在垂直领域增强中的应用与边界
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    深度学习领域知识库
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    深度学习领域知识库
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    深度学习基础理论
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    深度学习基础理论
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E8%AF%A6%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    深度学习理论：损失函数详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    优化理论：梯度下降与反向传播
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E5%BD%92%E4%B8%80%E5%8C%96%E6%96%B9%E6%B3%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    神经网络理论：大批量梯度归一化 (BN)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/%E6%BF%80%E6%B4%BB%E5%87%BD%E6%95%B0%E8%AF%A6%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    神经网络理论：激活函数详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    目标检测
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    目标检测
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../YOLO_V3_V5%E8%AF%A6%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YOLO V3/V5 详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../YOLO_V6_V7%E8%AF%A6%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YOLO V6/V7 详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../YOLOV9%E8%AF%A6%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YOLOV9 详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YOLOX 详解
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YOLOX 详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、概述与核心配置
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一、概述与核心配置">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 核心配置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 四大核心创新点
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、网络架构详解
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="二、网络架构详解">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 整体网络架构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox-cspdarknet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 主干网络 CSPDarknet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#silu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SiLU 激活函数原理与优势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sppneck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SPPneck (空间金字塔池化) 机制
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fpn-pan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、特征利用层（FPN + PAN）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="三、特征利用层（FPN + PAN）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox-fpn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX FPN三尺度特征
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox-panet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX PANet特征融合路径
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decoupled-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、解耦头（Decoupled Head）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、解耦头（Decoupled Head）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox-yolov5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 解耦头与 YOLOv5 耦合头的区别
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 解耦头输出结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 解耦头的优缺点分析
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 边界框解码公式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、样本匹配理论与损失评估
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="五、样本匹配理论与损失评估">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#anchor-free-anchor-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anchor-Free 相较于 Anchor-Based 的优势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SimOTA 动态样本匹配算法步骤
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simota-ota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SimOTA 与传统 OTA 的区别与优势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 损失函数加权组成
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、数据增强与训练实践
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="六、数据增强与训练实践">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox-mosaic-mixup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 数据增强策略 (Mosaic + MixUp)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 模型训练两阶段策略
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    经典网络架构
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    经典网络架构
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84/_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84/%E5%88%86%E5%89%B2%E7%BD%91%E7%BB%9C_UNet%E7%B3%BB%E5%88%97/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分割网络：U-Net 系列
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84/%E5%88%86%E7%B1%BB%E7%BD%91%E7%BB%9C_VGG_ResNet_DenseNet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分类网络：VGG、ResNet、DenseNet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84/%E5%A7%BF%E6%80%81%E4%BC%B0%E8%AE%A1%E4%B8%8E%E5%8A%A8%E4%BD%9C%E8%AF%86%E5%88%AB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    姿态估计与动作识别
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84/%E8%BD%BB%E9%87%8F%E5%8C%96%E7%BD%91%E7%BB%9C_MobileNet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    轻量化网络：MobileNet 系列
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E4%BC%A0%E7%BB%9F%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AE%97%E6%B3%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    传统机器学习与图像处理算法
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E5%BC%82%E5%B8%B8%E6%A3%80%E6%B5%8B_CFA%E7%AE%97%E6%B3%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    异常检测：CFA 算法详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%E7%9B%AE%E6%A0%87%E8%B7%9F%E8%B8%AA_ByteTrack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    目标跟踪：ByteTrack 算法详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../views/world-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    世界模型视图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、概述与核心配置
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一、概述与核心配置">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 核心配置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 四大核心创新点
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、网络架构详解
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="二、网络架构详解">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 整体网络架构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox-cspdarknet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 主干网络 CSPDarknet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#silu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SiLU 激活函数原理与优势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sppneck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SPPneck (空间金字塔池化) 机制
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fpn-pan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、特征利用层（FPN + PAN）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="三、特征利用层（FPN + PAN）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox-fpn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX FPN三尺度特征
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox-panet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX PANet特征融合路径
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decoupled-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、解耦头（Decoupled Head）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、解耦头（Decoupled Head）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox-yolov5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 解耦头与 YOLOv5 耦合头的区别
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 解耦头输出结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 解耦头的优缺点分析
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 边界框解码公式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、样本匹配理论与损失评估
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="五、样本匹配理论与损失评估">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#anchor-free-anchor-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anchor-Free 相较于 Anchor-Based 的优势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SimOTA 动态样本匹配算法步骤
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simota-ota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SimOTA 与传统 OTA 的区别与优势
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 损失函数加权组成
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、数据增强与训练实践
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="六、数据增强与训练实践">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yolox-mosaic-mixup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 数据增强策略 (Mosaic + MixUp)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yolox_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YOLOX 模型训练两阶段策略
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="yolox">YOLOX 详解</h1>
+<p>本文档详细介绍YOLOX的网络结构和核心创新点，这是YOLO系列中非常重要的一个版本。</p>
+<h2 id="_1">一、概述与核心配置</h2>
+<h3 id="yolox_1">YOLOX 核心配置</h3>
+<!-- wm: 事实与机制 | summary: YOLOX在激活函数、损失函数、Backbone和训练策略上的核心选型 -->
+<ul>
+<li><strong>SiLU激活函数</strong>：替代了以往的Leaky ReLU。</li>
+<li><strong>IoU Loss + BCE Loss</strong>：定位损失和置信度/类别损失的组合。</li>
+<li><strong>CSPDarknet</strong>：继承了YOLOv5的主干网络设计。</li>
+<li><strong>训练策略 (Warmup)</strong>：使用5个epoch。</li>
+</ul>
+<h3 id="yolox_2">YOLOX 四大核心创新点</h3>
+<!-- wm: 事实与机制 | summary: 核心创新包括解耦头、Anchor-Free、SimOTA与强数据增强 -->
+<ul>
+<li><strong>解耦头 (Decoupled Head)</strong>：将分类和回归分支物理分离。</li>
+<li><strong>Anchor-Free 机制</strong>：彻底去除预定义的anchor boxes，减少工程调参。</li>
+<li><strong>SimOTA 算法</strong>：采用动态正负样本分配策略，替代固定规则。</li>
+<li><strong>强数据增强策略</strong>：结合了 Mosaic 与 MixUp 两种增强手段。</li>
+</ul>
+<h2 id="_2">二、网络架构详解</h2>
+<h3 id="yolox_3">YOLOX 整体网络架构</h3>
+<!-- wm: 事实与机制 | summary: 核心组件为CSPDarknet、FPN与解耦头的流水线结构 -->
+<ul>
+<li><strong>主干网络 (CSPDarknet)</strong>：包含Focus层、CSP层与SPP，负责多尺度特征提取。</li>
+<li><strong>特征金字塔 (FPN)</strong>：对提取的三种尺度特征进行自顶向下与自底向上的融合。</li>
+<li><strong>解耦头 (Decoupled Head)</strong>：并行的三个分支，分别计算类别(Cls)、回归(Reg)与置信度(Obj)。</li>
+</ul>
+<h3 id="yolox-cspdarknet">YOLOX 主干网络 CSPDarknet</h3>
+<!-- wm: 事实与机制 | summary: CSPDarknet的组成结构包含Focus层、SiLU卷积、CSPLayer与SPPneck -->
+<ul>
+<li><strong>Focus层</strong>：将640×640切片融合为320×320，减小参数量提升计算速度。</li>
+<li><strong>SiLU 卷积层</strong>：搭配 SiLU 激活函数的残差积木。</li>
+<li><strong>CSPLayer</strong>：跨阶段局部网络，增强特征传递能力。</li>
+<li><strong>SPPneck (空间金字塔池化)</strong>：提取底层、中层、顶层三个尺度的特征用于后续检测。</li>
+</ul>
+<h3 id="silu">SiLU 激活函数原理与优势</h3>
+<!-- wm: 事实与机制 | summary: 是ReLU与Sigmoid的结合，光滑且具备强非线性能力 -->
+<ul>
+<li><strong>公式定义</strong>：<span class="arithmatex">\(SiLU(x) = x × sigmoid(x)\)</span></li>
+<li><strong>优点</strong>：解决 ReLU 负半轴生硬截断的问题；曲线相对 ReLU 更光滑，非线性能力更强；继承了 ReLU 收敛快的优点。</li>
+</ul>
+<h3 id="sppneck">SPPneck (空间金字塔池化) 机制</h3>
+<!-- wm: 事实与机制 | summary: 通过5×5、9×9、13×13的多尺度池化核concat实现感受野融合 -->
+<ul>
+<li><strong>多尺度最大池化 (MaxPool)</strong>：分别经过 5×5、9×9、13×13 的池化核。</li>
+<li><strong>特征融合 (Concat)</strong>：将不同池化输出结果与原特征拼接，极大增大感受野。</li>
+</ul>
+<h2 id="fpn-pan">三、特征利用层（FPN + PAN）</h2>
+<h3 id="yolox-fpn">YOLOX FPN三尺度特征</h3>
+<!-- wm: 事实与机制 | summary: 从CSPDarknet提取的不同深度的三个维度的特征图 -->
+<ul>
+<li><strong>中间层 (feat1)</strong>：分辨率为 80×80×256，用于检测小目标。</li>
+<li><strong>中下层 (feat2)</strong>：分辨率为 40×40×512，用于检测中目标。</li>
+<li><strong>底层 (feat3)</strong>：分辨率为 20×20×1024，用于检测大目标。</li>
+</ul>
+<h3 id="yolox-panet">YOLOX PANet特征融合路径</h3>
+<!-- wm: 事实与机制 | summary: 包含上采样Concat与下采样Concat的双向特征融合网络 -->
+<ul>
+<li><strong>自顶向下融合</strong>：底层特征上采样后，连续与中下层、中间层Concat，传递强语义信息。</li>
+<li><strong>自底向上融合</strong>：经过上述融合的特征，再次下采样依次Concat回去，补强细粒度的定位信息。</li>
+</ul>
+<h2 id="decoupled-head">四、解耦头（Decoupled Head）</h2>
+<h3 id="yolox-yolov5">YOLOX 解耦头与 YOLOv5 耦合头的区别</h3>
+<!-- wm: 事实与机制 | summary: 分离了特征提取分支，解决分类提取语义与回归提取边缘的冲突 -->
+<ul>
+<li><strong>YOLOv3/v5 耦合头</strong>：分类与回归共享特征层并一起预测，导致边框回归和分类任务的潜在线性冲突。</li>
+<li><strong>YOLOX 解耦头</strong>：特征输入先经过 1×1 Conv 降维，随后被显式地分成两个独立的特征流，各自负责分类任务与回归/置信度预测任务。</li>
+</ul>
+<h3 id="yolox_4">YOLOX 解耦头输出结构</h3>
+<!-- wm: 事实与机制 | summary: 最终输出Reg、Obj与Cls三个维度的合并张量 -->
+<ul>
+<li><strong>回归分支 (Reg)</strong>：输出 shape 为 (h, w, 4)，即目标的中心点与宽高预测量。</li>
+<li><strong>置信度分支 (Obj)</strong>：输出 shape 为 (h, w, 1)，预测该网格是否存在物体。</li>
+<li><strong>类别分支 (Cls)</strong>：输出 shape 为 (h, w, num_classes)，预测属于哪个具体类别的概率。</li>
+<li><strong>最终合成张量</strong>：Out(h, w, 4 + 1 + num_classes)。</li>
+</ul>
+<h3 id="yolox_5">YOLOX 解耦头的优缺点分析</h3>
+<!-- wm: 观测与反馈 | summary: 提升任务精度与收敛速度，但小幅增加了网络参量 -->
+<ul>
+<li><strong>核心优点</strong>：分类和定位解耦，消除任务间干扰；对任务精度有绝对优势；训练阶段收敛明显更快。</li>
+<li><strong>局限缺点</strong>：新增了数个单独的 3×3 卷积，小幅增加了网络的参数量和运算复杂度。</li>
+</ul>
+<h3 id="yolox_6">YOLOX 边界框解码公式</h3>
+<!-- wm: 策略+执行 | summary: 基于特征图网格点反推绝对坐标与真实宽高的指数解码算法 -->
+<ul>
+<li><strong>网格点生成</strong>：利用 <code>torch.meshgrid</code> 在特征图上铺设从 (0,0) 到 (w,h) 的密集网格点。</li>
+<li><strong>中心点坐标解码</strong>：真实的绝对中心点 = (预测的局部偏移量 + 当前网格点坐标) × 特征图步长(Strides)。</li>
+<li><strong>真实宽高解码</strong>：真实的边框宽高 = torch.exp(输出预测值) × 特征图步长(Strides)。</li>
+</ul>
+<h2 id="_3">五、样本匹配理论与损失评估</h2>
+<h3 id="anchor-free-anchor-based">Anchor-Free 相较于 Anchor-Based 的优势</h3>
+<!-- wm: 事实与机制 | summary: 消除了繁琐的超参调优，更好地适应跨度大、形变高的物体检测 -->
+<ul>
+<li><strong>免去了超参预设</strong>：传统模型需要利用 KMeans 对锚框（Anchor Boxes）进行聚类并手工设置长宽比，Anchor-Free 完全抛弃了这一套。</li>
+<li><strong>形变适应性更强</strong>：传统锚框尺寸固定，难以处理极端宽高比的目标；Anchor-Free 直接对网格点预测，灵活性更高。</li>
+<li><strong>减少参数与显存开销</strong>：由于不必在一个网格铺设 3 种形状的锚框，网络最后一层的计算量和参数大幅锐减。</li>
+</ul>
+<h3 id="simota">SimOTA 动态样本匹配算法步骤</h3>
+<!-- wm: 策略+执行 | summary: 包含中心先验初筛正样本、构建Cost代价矩阵与动态K分配等四步 -->
+<ul>
+<li><strong>Step 1: 中心点初筛 (Filter)</strong>：找出落入 GT 框中心扩展区域 (2.5 × Stride) 内的 Anchor 点作为候选金种子。</li>
+<li><strong>Step 2: 计算 Cost 矩阵</strong>：对每个正样本候选，基于分类损失(Cls)和回归损失(Reg)联合计算综合代价 (Cost = Cls_L + 3 * Reg_L)。</li>
+<li><strong>Step 3: 确定 dynamic_k</strong>：每个真实框需要分配几个正样本？通过选取 IoU 最大的前 10 个预测框，将其 IoU 求和取整得到动态配额 K。</li>
+<li><strong>Step 4: 最终匹配求解</strong>：在候选集里为每个 GT 选择 Cost 最低的前 K 个预测框，如果某个框被分配给多个 GT，则分配给 Cost 最低的那个。</li>
+</ul>
+<h3 id="simota-ota">SimOTA 与传统 OTA 的区别与优势</h3>
+<!-- wm: 观测与反馈 | summary: 采用Top-K策略取代OTA的Sinkhorn-Knopp迭代计算，大幅减少耗时 -->
+<ul>
+<li><strong>OTA (Optimal Transport Assignment)</strong>：将样本分配看作最优传输问题，利用 Sinkhorn-Knopp 迭代求解全局最优匹配解，计算开销极大。</li>
+<li><strong>SimOTA</strong>：采用简单的近乎贪心的 Top-K 选择逻辑去逼近最优传输效果。</li>
+<li><strong>性能差异</strong>：SimOTA 在 mAP 提升上极其接近 OTA，但将额外的动态分配训练耗时大幅缩简到了可忽略不计的程度。</li>
+</ul>
+<h3 id="yolox_7">YOLOX 损失函数加权组成</h3>
+<!-- wm: 策略+执行 | summary: 采用 IoU Loss 处理回归，并使用多倍权重加权，以及BCE Loss分类 -->
+<ul>
+<li><strong>回归损失 (Reg Loss)</strong>：采用 IoU Loss 计算真实框与预测框的重合度。为强化定位惩罚，赋予了默认 <strong>5.0 的权重</strong>。</li>
+<li><strong>前景背景损失 (Obj Loss)</strong>：采用二分类交叉熵 (BCE Loss)，判定该网格是否存在目标。</li>
+<li><strong>类别损失 (Cls Loss)</strong>：采用二分类交叉熵 (BCE Loss)，判定究竟属于 80 类中的哪一类。</li>
+<li><strong>全局归一化</strong>：三种损失相加后，统除以本批次总的前景真实样本数量 (num_fg)。</li>
+</ul>
+<h2 id="_4">六、数据增强与训练实践</h2>
+<h3 id="yolox-mosaic-mixup">YOLOX 数据增强策略 (Mosaic + MixUp)</h3>
+<!-- wm: 策略+执行 | summary: YOLOX同时使用了多图拼图的Mosaic和图像透明度融缩的MixUp -->
+<ul>
+<li><strong>Mosaic 增强</strong>：随机提取 4 张图片并缩放裁剪，最终拼接为一张网格状的新图像输入网络，丰富了图像的背景和组合复杂度。</li>
+<li><strong>MixUp 增强</strong>：在 Mosaic 的基础上，额外抽取另一张图填充缩放到统一尺寸，再利用融合系数 (alpha) 通过加权叠加融合进 Mosaic 图中。</li>
+</ul>
+<h3 id="yolox_8">YOLOX 模型训练两阶段策略</h3>
+<!-- wm: 策略+执行 | summary: 前285轮强干扰数据增强，最后15轮关闭增强以还原真实分布拟合 -->
+<ul>
+<li><strong>强增强探索阶段 (前 285 个 epoch)</strong>：同时开启 Mosaic 和 MixUp 生成高度杂乱的数据输入，虽然图像失真且不符合真实分布，但极大增强了特征提取主干的网络鲁棒性。</li>
+<li><strong>微调收敛阶段 (最后 15 个 epoch)</strong>：必须<strong>完全关闭</strong> Mosaic 和 MixUp，只喂给干净的真实图像集进行微调，让网络的泛化偏差“降落”回收敛点。</li>
+<li><strong>基础学习率 (Lr)</strong>：默认为 0.01；并采用 5 个 Epoch 的 Warmup (预热)。</li>
+</ul>
+<blockquote>
+<p><strong>参考资料</strong>：
+- <a href="https://zhuanlan.zhihu.com/p/437931011">YOLOX源码解析 - SimOTA</a>
+- <a href="https://blog.csdn.net/jizhidexiaoming/article/details/119775002">YOLOX源码解析 - yolo_head.py</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "toc.follow", "content.code.copy", "content.tooltips", "content.tabs.link", "search.suggest", "search.highlight"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../../javascripts/auto-enhance.js"></script>
+      
+        <script src="../../../../javascripts/wm-view.js"></script>
+      
+        <script src="../../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

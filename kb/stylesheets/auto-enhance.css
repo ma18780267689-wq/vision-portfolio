@@ -1,0 +1,644 @@
+/* docs/stylesheets/auto-enhance.css
+   目标：图二风格
+   - 折叠：极简“列表行 + 分隔线 + 右侧箭头”
+   - Callout：行内标签 + 轻提示行（不贴左）
+*/
+
+/* ========== 隐藏编辑按钮图标 ========== */
+.md-content__button.md-icon,
+a[title="Edit this page"],
+a[title="编辑此页"] {
+  display: none !important;
+}
+
+/* ========== 隐藏上一页/下一页导航 ========== */
+.md-footer__inner {
+  display: none !important;
+}
+
+/* ========== 全局护眼中性灰配色 ========== */
+
+/* 浅色模式 - 整体页面护眼灰（更柔和） */
+:root {
+  --eye-care-bg: #fafaf8;
+  --eye-care-bg-alt: #fafaf8;
+  --eye-care-surface: #fafaf8;
+  --eye-care-surface-raised: #fafaf8;
+  --eye-care-border: #2327260f;
+  --eye-care-shadow: #23272614;
+}
+
+/* 页面主背景 */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: var(--eye-care-bg);
+  --md-default-bg-color--light: var(--eye-care-bg-alt);
+}
+
+/* 头部导航栏 */
+[data-md-color-scheme="default"] .md-header {
+  background: var(--eye-care-bg-alt);
+  box-shadow: 0 1px 0 var(--eye-care-border);
+}
+
+/* 侧边栏 */
+[data-md-color-scheme="default"] .md-sidebar {
+  background: var(--eye-care-bg);
+}
+
+/* 内容区域 */
+[data-md-color-scheme="default"] .md-content {
+  background: var(--eye-care-bg);
+}
+
+/* 搜索栏 */
+[data-md-color-scheme="default"] .md-search__input {
+  background: var(--eye-care-surface);
+  border: 1px solid var(--eye-care-border);
+}
+
+/* 标签页/Tabs */
+[data-md-color-scheme="default"] .md-tabs {
+  background: var(--eye-care-bg-alt);
+}
+
+/* ========== 折叠抽屉：极简列表风 ========== */
+
+.auto-fold {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* 覆盖 Material 主题的 details 默认蓝色边框 */
+.md-typeset details.auto-fold {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* 每一条折叠项像“列表行” - 苹果风格 */
+.auto-fold-summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+
+  padding: 0.85rem 1.25rem;
+  margin: 0;
+
+  /* 立体感 - 中性灰 */
+  background: var(--eye-care-surface-raised) !important;
+
+  /* 立体阴影效果 */
+  box-shadow:
+    0 2px 4px var(--eye-care-shadow),
+    0 1px 2px #2327260a,
+    inset 0 1px 0 #fafaf84d;
+  border: 1px solid var(--eye-care-border);
+  border-radius: 20px;
+  margin-bottom: 0.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  /* transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); */
+  /* 改为指定属性，避免 unexpected flash */
+  transition: background 0.2s, box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+/* 覆盖 Material 主题的 summary 默认蓝色背景 */
+.md-typeset details.auto-fold>summary {
+  background: var(--eye-care-surface-raised) !important;
+  box-shadow:
+    0 2px 4px var(--eye-care-shadow),
+    0 1px 2px #2327260a,
+    inset 0 1px 0 #fafaf84d;
+  border: 1px solid var(--eye-care-border) !important;
+}
+
+/* 展开状态下的 Summary */
+.md-typeset details.auto-fold[open]>summary,
+details.auto-fold[open]>.auto-fold-summary {
+  border-radius: 20px !important;
+  margin-bottom: 0.5rem !important;
+  border: 1px solid var(--eye-care-border) !important;
+  box-shadow:
+    0 2px 4px var(--eye-care-shadow),
+    inset 0 1px 0 #fafaf84d !important;
+}
+
+/* 深色模式 - 展开状态的 Summary */
+[data-md-color-scheme="slate"] .md-typeset details.auto-fold[open]>summary,
+[data-md-color-scheme="slate"] details.auto-fold[open]>.auto-fold-summary {
+  border: 1px solid #fafaf814 !important;
+  box-shadow: none !important;
+}
+
+/* 悬停浮起 */
+.auto-fold-summary:hover {
+  background: var(--eye-care-surface-raised) !important;
+  box-shadow:
+    0 4px 8px var(--eye-care-shadow),
+    0 2px 4px #2327260d,
+    inset 0 1px 0 #fafaf866;
+  transform: translateY(-1px);
+}
+
+.auto-fold-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 隐藏 Material summary 默认图标（::before） */
+.auto-fold-summary::before,
+.auto-fold-heading::before,
+.md-typeset details.auto-fold>summary::before,
+.md-typeset .auto-fold-summary::before {
+  display: none !important;
+  content: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  background: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 右侧箭头 */
+.auto-fold-summary::after {
+  content: "▸";
+  flex: 0 0 auto;
+  opacity: 0.55;
+  transform: rotate(0deg);
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  font-size: 14px;
+}
+
+.auto-fold[open]>.auto-fold-summary::after {
+  transform: rotate(90deg);
+  opacity: 0.8;
+}
+
+/* summary 内标题本体 */
+.auto-fold-heading {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 折叠内容 - 默认无卡片样式 */
+.auto-fold-content {
+  padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+  background: transparent !important;
+  border-radius: 0 !important;
+  margin-bottom: 0.2rem !important;
+  margin-top: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* 最叶子内容（不包含嵌套折叠块）- 显示卡片样式 */
+.auto-fold-content:not(:has(.auto-fold)) {
+  background: var(--eye-care-surface) !important;
+  border-radius: 12px !important;
+  padding: 0.8rem 1rem 0.8rem 1.8rem !important;
+  /* 左侧留出列表圆点空间 */
+  margin-top: 0.15rem !important;
+  margin-bottom: 0.4rem !important;
+  box-shadow: inset 0 1px 3px #2327260d !important;
+  border: 1px solid var(--eye-care-border) !important;
+  line-height: 1.75 !important;
+}
+
+/* 卡片内列表样式优化 */
+.auto-fold-content:not(:has(.auto-fold)) ul,
+.auto-fold-content:not(:has(.auto-fold)) ol {
+  margin: 0.4em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.auto-fold-content:not(:has(.auto-fold)) li {
+  margin: 0.35em 0 !important;
+  line-height: 1.7 !important;
+}
+
+/* 卡片内段落样式 */
+.auto-fold-content:not(:has(.auto-fold)) p {
+  margin: 0.5em 0 !important;
+  line-height: 1.75 !important;
+}
+
+/* 深色模式 - 最叶子内容卡片 */
+[data-md-color-scheme="slate"] .auto-fold-content:not(:has(.auto-fold)) {
+  background: #23272699 !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-shadow: none !important;
+  border: 1px solid #fafaf814 !important;
+}
+
+/* 深色模式折叠内容 - 默认无卡片 */
+[data-md-color-scheme="slate"] .auto-fold-content {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* 层级缩进移除 */
+.auto-fold-l1>.auto-fold-content,
+.auto-fold-l2>.auto-fold-content,
+.auto-fold-l3>.auto-fold-content,
+.auto-fold-l4>.auto-fold-content,
+.auto-fold-l5>.auto-fold-content,
+.auto-fold-l6>.auto-fold-content {
+  padding-left: 0.6rem;
+}
+
+/* 内容顶部更干净 */
+.auto-fold-content> :first-child {
+  margin-top: 0.35rem;
+}
+
+/* 深色模式折叠标题 - 毛玻璃 */
+[data-md-color-scheme="slate"] .auto-fold-summary {
+  background: #23272699 !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: var(--md-text-color) !important;
+  box-shadow: 0 4px 12px #23272659,
+    0 2px 4px #23272633;
+  border: 1px solid #fafaf81a !important;
+}
+
+[data-md-color-scheme="slate"] .auto-fold-summary:hover {
+  background: #232726b3 !important;
+  box-shadow: 0 8px 20px #23272666,
+    0 4px 8px #23272640;
+  border-color: #fafaf826 !important;
+}
+
+[data-md-color-scheme="slate"] .md-typeset details.auto-fold>summary {
+  background: #23272699 !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: var(--md-text-color) !important;
+  box-shadow: 0 4px 12px #23272659,
+    0 2px 4px #23272633 !important;
+  border: 1px solid #fafaf81a !important;
+}
+
+[data-md-color-scheme="slate"] .auto-fold-summary .auto-fold-heading {
+  color: var(--md-text-color) !important;
+}
+
+/* 去除默认Focus轮廓，防止点击时出现自带的白/蓝框 */
+.auto-fold-summary:focus,
+.md-typeset details.auto-fold>summary:focus {
+  outline: none !important;
+}
+
+/* 深色模式下 focus 状态保持深色阴影 */
+[data-md-color-scheme="slate"] .auto-fold-summary:focus,
+[data-md-color-scheme="slate"] .md-typeset details.auto-fold>summary:focus {
+  outline: none !important;
+  box-shadow: 0 4px 12px #23272659,
+    0 2px 4px #23272633 !important;
+}
+
+/* ========== 全局展开/折叠按钮 ========== */
+.auto-expand-controls {
+  margin-bottom: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.auto-expand-controls:hover {
+  opacity: 1;
+}
+
+.auto-expand-btn {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid #2327261a;
+  background: #23272605;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.auto-expand-btn:hover {
+  background: #2327260d;
+}
+
+/* 深色模式按钮 */
+[data-md-color-scheme="slate"] .auto-expand-btn {
+  border: 1px solid #fafaf826;
+  background: #fafaf814;
+  color: #fafaf8e6 !important;
+  /* 强制使用浅色文字，确保在深色背景下可见 */
+}
+
+[data-md-color-scheme="slate"] .auto-expand-btn:hover {
+  background: #fafaf826;
+  color: #fafaf8 !important;
+}
+
+/* ========== 行内标签样式（图二效果） ========== */
+
+/* 行内标签：高亮的小标签 */
+.auto-inline-tag {
+  display: inline-block;
+  /* ✅ 由 inline 改成 inline-block，避免像正文 */
+  background: linear-gradient(135deg, #2f65561f, #2f65561a);
+  color: #2f6556;
+  font-weight: 600;
+  padding: 0.16rem 0.28rem;
+  border-radius: 6px;
+  margin-right: 0.35rem;
+  /* ✅ 增大一点：标签和正文分离 */
+  white-space: nowrap;
+
+  /* ✅ 让标签略微上提一点，更“标签” */
+  transform: translateY(-1px);
+  font-size: 0.88em;
+  letter-spacing: 0.2px;
+}
+
+/* 深色模式标签 */
+[data-md-color-scheme="slate"] .auto-inline-tag {
+  background: linear-gradient(135deg, #2f655640, #2f655633);
+  color: #fafaf8;
+}
+
+/* ========== ✅ 关键修复：带标签的正文“不要贴左” ========== */
+
+/* 你这块痛点就是它太靠左，所以我们把“整行”做成轻提示行：
+   - 左侧内缩 padding-left
+   - 淡淡的引导线 border-left
+   - 圆角柔和
+*/
+.md-typeset p.auto-tagged-line,
+.md-typeset li.auto-tagged-line {
+  margin: 0.65rem 0;
+  line-height: 1.78;
+
+  padding-left: 0.55rem;
+  /* ✅ 整行右移 */
+  /*border-left: 3px solid #2f65562e;*/
+  border-radius: 10px;
+}
+
+/* 如果你觉得“带边线”太明显，可以把 border-left 注释掉，只留 padding-left */
+
+
+
+/* ========== 列表里的 tagged 行额外处理：避免被 list padding 叠加得太宽 ========== */
+.md-typeset li.auto-tagged-line {
+  padding-left: 0.25rem;
+}
+
+/* ========== 兼容：避免 summary/table 内被影响（JS已做过滤，这里再兜底） ========== */
+summary .auto-inline-tag,
+table .auto-inline-tag {
+  transform: none;
+}
+
+/* ========== 优化1：标题字体缩小 + 间隔缩小 ========== */
+.md-typeset h1 {
+  margin-top: 0.1em !important;
+  margin-bottom: 0.08em !important;
+  font-size: 1.6em !important;
+}
+
+.md-typeset h2 {
+  margin-top: 0.15em !important;
+  margin-bottom: 0.05em !important;
+  padding-top: 0 !important;
+  font-size: 1.35em !important;
+}
+
+.md-typeset h3 {
+  margin-top: 0.12em !important;
+  margin-bottom: 0.05em !important;
+  font-size: 1.15em !important;
+}
+
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  margin-top: 0.1em !important;
+  margin-bottom: 0.05em !important;
+  font-size: 1em !important;
+}
+
+/* ========== 优化2：表格100%宽度（像Typora） ========== */
+.md-typeset table:not([class]) {
+  width: 100% !important;
+  display: table !important;
+  table-layout: fixed !important;
+}
+
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  padding: 0.4em 0.6em !important;
+}
+
+/* ========== 优化3：去掉所有分割线 ========== */
+.md-typeset hr {
+  display: none !important;
+}
+
+/* ========== 优化4：折叠卡片样式 ========== */
+.auto-fold {
+  margin: 0 !important;
+}
+
+.auto-fold-summary {
+  padding: 0.5rem 0.9rem !important;
+  margin-bottom: 0.35rem !important;
+  border-radius: 14px !important;
+}
+
+.auto-fold-content {
+  padding: 0.25rem 0.6rem !important;
+  margin-bottom: 0.2rem !important;
+  margin-top: 0 !important;
+}
+
+/* 嵌套折叠间距 */
+.auto-fold .auto-fold {
+  margin-top: 0.2rem !important;
+}
+
+.auto-fold .auto-fold-summary {
+  padding: 0.45rem 0.8rem !important;
+  margin-bottom: 0.3rem !important;
+}
+
+.auto-fold .auto-fold .auto-fold-summary {
+  padding: 0.4rem 0.7rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.auto-fold .auto-fold-content {
+  padding: 0.3rem 0.5rem !important;
+}
+
+/* ========== 优化5：段落和列表更紧凑 ========== */
+.md-typeset p {
+  margin: 0.25em 0 !important;
+  line-height: 1.6 !important;
+}
+
+.md-typeset ul,
+.md-typeset ol {
+  margin: 0.2em 0 !important;
+}
+
+.md-typeset li {
+  margin: 0.1em 0 !important;
+}
+
+/* 内容区顶底更紧凑 */
+.auto-fold-content> :first-child {
+  margin-top: 0 !important;
+}
+
+.auto-fold-content> :last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ========== 优化6：引用块去掉竖线 ========== */
+.md-typeset blockquote {
+  border-left: none !important;
+  padding-left: 0 !important;
+  background: transparent !important;
+  margin: 0.2em 0 !important;
+}
+
+/* ========== 优化7：代码块更紧凑 ========== */
+.md-typeset pre {
+  margin: 0.3em 0 !important;
+  padding: 0.5em 0.8em !important;
+}
+
+/* ========== 优化8：整体内容区更紧凑 ========== */
+.md-content__inner {
+  padding: 0.8rem 1.2rem 1rem !important;
+}
+
+.md-typeset {
+  line-height: 1.55 !important;
+}
+
+/* ========== 优化9：侧边栏导航选中颜色 ========== */
+/* 活跃/选中状态 - 使用柔和的灰色而非蓝色 */
+.md-nav__link--active,
+.md-nav__link:focus,
+.md-nav__item--active>.md-nav__link {
+  color: #232726 !important;
+}
+
+/* 右侧活跃指示条 - 柔和灰色 */
+.md-nav--primary .md-nav__link--active::after,
+.md-nav--primary .md-nav__item--active>.md-nav__link::after {
+  background-color: #232726 !important;
+}
+
+/* 悬停状态 */
+.md-nav__link:hover {
+  color: #232726 !important;
+}
+
+/* 深色模式 */
+[data-md-color-scheme="slate"] .md-nav__link--active,
+[data-md-color-scheme="slate"] .md-nav__link:focus,
+[data-md-color-scheme="slate"] .md-nav__item--active>.md-nav__link {
+  color: #fafaf8 !important;
+}
+
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__link--active::after,
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__item--active>.md-nav__link::after {
+  background-color: #fafaf8 !important;
+}
+
+/* ========== 优化10：侧边栏滚动条颜色 ========== */
+/* 滚动条整体 */
+.md-sidebar__scrollwrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.md-sidebar__scrollwrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
+  background: #fafaf8;
+  border-radius: 3px;
+}
+
+.md-sidebar__scrollwrap::-webkit-scrollbar-thumb:hover {
+  background: #232726;
+}
+
+/* 深色模式滚动条 */
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
+  background: #232726;
+}
+
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap::-webkit-scrollbar-thumb:hover {
+  background: #232726;
+}
+
+/* ========== 优化11：页面加载动画 ========== */
+/* 加载遮罩层 */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--eye-care-bg, #fafaf8);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* 加载动画圆圈 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #2327261a;
+  border-top-color: #232726;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 深色模式加载 */
+[data-md-color-scheme="slate"] .page-loading-overlay {
+  background: #232726;
+}
+
+[data-md-color-scheme="slate"] .loading-spinner {
+  border-color: #fafaf81a;
+  border-top-color: #fafaf8;
+}

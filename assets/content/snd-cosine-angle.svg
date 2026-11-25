@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="744" viewBox="0 0 600 620">
+  <title>通过余弦相似度计算两个方向向量的夹角</title>
+  <desc>短边方向向量u与箭头方向向量v平移到同一起点。余弦相似度s等于两向量点积除以模长乘积，夹角θ等于arccos(s)。图形仅说明计算方法，不表示样本的实测夹角或验收阈值。</desc>
+  <defs>
+    <marker id="short-edge-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11" fill="none" stroke="#2f6556" stroke-width="1.5"/></marker>
+    <marker id="pointer-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11" fill="none" stroke="#232726" stroke-width="1.5"/></marker>
+  </defs>
+  <rect width="600" height="620" fill="#fafaf8"/>
+  <g font-family="Microsoft YaHei, PingFang SC, sans-serif" fill="#232726">
+    <text x="300" y="58" text-anchor="middle" font-size="30" font-weight="600" fill="#2f6556">用夹角，比较两个方向</text>
+    <text x="300" y="99" text-anchor="middle" font-size="20" opacity=".72">将向量平移至同一起点，仅比较方向</text>
+    <circle cx="300" cy="153" r="5" fill="#232726"/>
+    <text x="314" y="150" font-size="22">O</text>
+    <path d="M300 153L188 346" fill="none" stroke="#2f6556" stroke-width="3.5" marker-end="url(#short-edge-arrow)"/>
+    <path d="M300 153L412 346" fill="none" stroke="#232726" stroke-width="3.5" marker-end="url(#pointer-arrow)"/>
+    <path d="M260 222.3A80 80 0 0 0 340 222.3" fill="none" stroke="#2f6556" stroke-width="2"/>
+    <text x="300" y="270" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="#2f6556">θ</text>
+    <text x="176" y="383" text-anchor="middle" font-size="24" fill="#2f6556">u · 短边方向</text>
+    <text x="424" y="383" text-anchor="middle" font-size="24">v · 箭头方向</text>
+    <path d="M60 414H540" stroke="#232726" stroke-opacity=".16"/>
+    <text x="300" y="465" text-anchor="middle" font-family="Cambria Math, Times New Roman, serif" font-size="32">s = (u · v) / (‖u‖ ‖v‖)</text>
+    <text x="300" y="516" text-anchor="middle" font-family="Cambria Math, Times New Roman, serif" font-size="34" fill="#2f6556">θ = arccos(s)</text>
+    <text x="300" y="559" text-anchor="middle" font-size="20">同向 0° · 垂直 90° · 反向 180°</text>
+    <text x="300" y="598" text-anchor="middle" font-size="18" opacity=".67">计算方法示意 · 按实际角度条件完成判定</text>
+  </g>
+</svg>
