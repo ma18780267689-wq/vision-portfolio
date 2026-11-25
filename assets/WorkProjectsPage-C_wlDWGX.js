@@ -404,7 +404,7 @@ function x({
                 id: `work-project-modal-${x.id}-description`,
                 children: x.modalIntro
               })]
-            }), x.href ? (0, m.jsx)(`a`, {className: `knowledge-project-link`, href: x.href, children: `打开 My KB 知识库 ↗`}) : null, (0, m.jsx)(`div`, {
+            }), (0, m.jsx)(`div`, {
               className: `other-writing-modal-sections`,
               children: x.modalSections.map(e => (0, m.jsxs)(`section`, {
                 className: `other-writing-modal-section`,

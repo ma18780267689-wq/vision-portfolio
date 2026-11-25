@@ -13,6 +13,7 @@ export function CuratedHome({react:React,data}) {
  const open=(event,item,kind)=>{trigger.current=event.currentTarget;setSelection({item,kind});};
  const close=()=>dialog.current.close();
  const item=selection?.item;
+ if(data.showThoughts===false&&!data.projectCard.items.length)return null;
  return h(React.Fragment,null,
   h('div',{className:'curated-home',id:'fun'},
    data.showThoughts!==false&&h('section',{className:'curated-section',id:'selected-thoughts','aria-labelledby':'selected-thoughts-title'},
