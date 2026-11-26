@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420" role="img" aria-labelledby="title desc">
+  <title id="title">首层下采样：Focus 切片与步长卷积</title>
+  <desc id="desc">640×640 的 RGB 输入。v5.0 的 Focus 按行列奇偶将每个 2×2 小块的四个位置分开，沿通道拼成 320×320×12，再做 3×3 卷积。v6.0 直接做 6×6、步长 2、填充 2 的卷积。两者的输出尺寸均为 320×320×C。</desc>
+  <style>
+    text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#202e29;font-size:16px}.small{font-size:14px;fill:#526259}.title{font-weight:700}.node{fill:#fffef9;stroke:#b8c5b9;stroke-width:1.2}.focus{fill:#e6eee2;stroke:#245b44;stroke-width:1.2}.flow{fill:none;stroke:#245b44;stroke-width:1.6;marker-end:url(#arrow)}.rule{stroke:#b8c5b9;stroke-width:1}
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#245b44"/></marker>
+    <g id="tile">
+      <path d="M0 0h24v24H0z" fill="#d6e5d3"/><path d="M24 0h24v24H24z" fill="#f3e7c8"/><path d="M0 24h24v24H0z" fill="#e6ddd5"/><path d="M24 24h24v24H24z" fill="#ecf0ed"/>
+      <path d="M.5.5h47v47H.5zM24 0v48M0 24h48" stroke="#88998c" stroke-width=".8" fill="none"/>
+      <g text-anchor="middle"><text x="12" y="18">a</text><text x="36" y="18">b</text><text x="12" y="42">c</text><text x="36" y="42">d</text></g>
+    </g>
+  </defs>
+  <text x="16" y="26" class="title">同一输入：640 × 640 × 3</text>
+  <path class="rule" d="M16 42H344"/>
+  <text x="16" y="70" class="title">v5.0 · Focus</text>
+  <g><use href="#tile" x="16" y="85"/><use href="#tile" x="64" y="85"/><use href="#tile" x="16" y="133"/><use href="#tile" x="64" y="133"/></g>
+  <text x="128" y="105">每个 2×2 小块都取四个位置。</text>
+  <text x="128" y="134" class="small">所有 a 归一组，b、c、d 同理。</text>
+  <text x="128" y="158" class="small">四组来自整张图，不是四个象限。</text>
+  <path class="flow" d="M64 182V200"/>
+  <rect class="focus" x="16" y="203" width="328" height="40" rx="6"/>
+  <text x="180" y="229" text-anchor="middle">沿通道拼接：320 × 320 × 12</text>
+  <path class="flow" d="M64 243V260"/>
+  <rect class="node" x="16" y="263" width="328" height="38" rx="6"/>
+  <text x="180" y="288" text-anchor="middle">3×3 卷积 → 320 × 320 × C</text>
+  <path class="rule" d="M16 320H344"/>
+  <text x="16" y="347" class="title">v6.0 · 直接卷积</text>
+  <rect class="focus" x="16" y="361" width="328" height="43" rx="6"/>
+  <text x="180" y="388" text-anchor="middle">6×6，步长 2，填充 2 → 320 × 320 × C</text>
+</svg>

@@ -1,0 +1,69 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YOLOv1 原理 · 原论文 VOC 配置</title><link rel="stylesheet" href="../../交互图解/01_YOLO整体框架/styles.css"><link rel="stylesheet" href="../../交互图解/01_YOLO整体框架/reader-navigation.css"><link rel="stylesheet" href="../../通用机制/特征提取与多尺度融合/topic.css"><script src="../../交互图解/01_YOLO整体框架/reader-navigation.js" defer></script><link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+<script src="../../交互图解/01_YOLO整体框架/terms-yolo.js" defer></script>
+<script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script>
+<script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head><body class="has-quick-nav topic-page" data-topic-reader="true" id="top"><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div><a class="skip-link" href="#yolov1">跳到正文</a>
+<nav class="quick-nav" aria-label="快捷目录"><details open><summary>快捷目录</summary><ol><li><a href="#yolov1">初代的贡献</a></li><li><a href="#v1-output">网络与输出</a></li><li><a href="#v1-assignment">监督分配</a></li><li><a href="#v1-loss">损失与训练</a></li><li><a href="#v1-inference">分数与 NMS</a></li><li><a href="#v1-evolution">局限与演进</a></li><li><a href="#v1-tracks">六条主线定位</a></li></ol><div class="topic-switch"><a href="../../交互图解/01_YOLO整体框架/index.html">YOLO 总览</a><a href="../../交互图解/01_YOLO整体框架/index.html#compare">版本对照</a><a href="#top">回到顶部</a></div></details></nav>
+<header class="masthead wrap"><span>视觉任务体系 / 目标检测 / 模型原理</span><a href="../../交互图解/01_YOLO整体框架/index.html#yolov1">返回总览</a><a href="../../交互图解/01_YOLO整体框架/index.html#anchor-priors">先验框机制</a></header><main class="wrap"><header class="topic-hero"><p class="eyebrow">YOLOv1 · 历史模型原理</p><h1>初代 YOLO 的<br>统一检测设计。</h1><p class="scope">详细推导在本页保留；总览只保留贡献、结构要点和局限，避免初代篇幅压过后续演进。</p></header>    <section id="yolov1" class="math-section model-body" aria-labelledby="yolov1-title">
+      <p class="eyebrow">回到统一检测的起点</p>
+      <h2 id="yolov1-title">YOLOv1：让一个网络，<br>直接给出整张图的检测预测。</h2>
+      <p>初代 YOLO 的主要贡献，是把整图特征提取、定位和类别预测放进同一个可联合训练的网络。相较于先生成候选区域、再处理各区域的检测流程，这种设计缩短了从图像到预测的路径，也让预测能够利用整图上下文。它奠定了实时单阶段检测的一条重要路线，但不是后来所有 YOLO 结构的逐层模板。</p>
+      <p class="scope">本节采用原论文 Pascal VOC 配置：448×448 输入、S=7、B=2、C=20；YOLOv1 是对初代的后称。论文预印本发布于 2015 年，发表于 CVPR 2016。下文数值例子是假设数据，未运行模型。</p>
+      <nav class="math-links" aria-label="初代 YOLO 小节"><a href="#v1-output">网络与输出</a><a href="#v1-assignment">监督分配</a><a href="#v1-loss">损失与训练</a><a href="#v1-inference">分数与 NMS</a><a href="#v1-evolution">局限与后续改动</a><a href="#v1-tracks">六条主线定位</a></nav>
+
+      <h3 id="v1-output">网络怎样一次输出多个目标？</h3>
+      <figure class="network-figure"><img src="../../通用机制/特征提取与多尺度融合/assets/network-v1.svg" width="360" height="374" loading="lazy" alt="448×448 图像经24层卷积和两层全连接，形成7×7格。每格分别输出两套坐标和置信度，以及一套共享类别。"><figcaption><strong>YOLOv1（VOC）</strong> <span>先整图提特征，再一次给出 49 格的预测；每格 20 个类别值由两个框共享。</span> <a href="https://arxiv.org/html/1506.02640v5#S2" target="_blank" rel="noreferrer">原论文 §2</a></figcaption></figure>
+      <p>卷积层先处理整张图，全连接层再把整图特征映射成固定长度的预测。原版检测网络为 <strong>24 个卷积层 + 2 个全连接层</strong>，最后的 1470 个数按 7×7×30 解释。7×7 是输出和监督的空间组织方式，不是先切出 49 张小图、分别运行网络；这里也没有现代常见的三尺度预测头或 FPN / PAN 融合结构。</p>
+      <div class="math-formula" aria-label="初代 YOLO 输入输出"><span>448×448 图像 → 卷积特征 → 全连接输出</span><span>S×S×(B×5+C) = 7×7×(2×5+20) = 7×7×30</span><small>S 是每边网格数；B 是每格的框预测器数量；C 是类别数。每个框对应中心 x、y，宽 w、高 h 和一个置信度。每格的 20 个类别输出由两个框共享，不能写成 2×(5+20)。</small></div>
+      <p>因此，49 个网格一共提供 <strong>98 个候选框</strong>，不是 1470 个框，也不是已经找到 98 个目标。两个预测器都可学习不同大小、长宽比的框；它们不是人为指定的小框和大框，更不是预先聚类出来的两个 Anchor。</p>
+      <p>框中心用相对所在网格的坐标表示，宽高用相对整张输入图的比例表示。网格决定预测责任，不把框的四条边限制在格子内；一个格子完全可以预测跨越多个格子的框。</p>
+      <details id="v1-coordinate-example"><summary>用具体坐标理解：一个框怎样落到网格和输出数值上？</summary><div class="detail-content">
+        <p>以 448×448 输入坐标为准，设 <span data-term="gt">GT</span> 为 <code>(204,144,284,184)</code>，中心为 <code>(244,164)</code>，宽高为 <code>(80,40)</code>。每格边长为 448÷7=64，因此中心落在从 0 开始计数的第 3 列、第 2 行，该格左上角为 <code>(192,128)</code>。</p>
+        <p>中心的格内相对坐标为 <code>x=(244−192)/64=0.8125</code>、<code>y=(164−128)/64=0.5625</code>；归一化宽高为 <code>w=80/448≈0.1786</code>、<code>h=40/448≈0.0893</code>。这些是几何目标，宽高在损失中还采用平方根形式比较。</p>
+        <p>反过来，利用格子索引与这些数值即可恢复原图中的框。这个例子中的右边界 284 已经超过该格右边界 256，说明“由该格负责”不等于“框只能画在该格里”。格内坐标和归一化是目标的参数化方式；原论文最后一层是线性的，不应直接套入 v3 的 Sigmoid 与 Anchor 指数解码。</p>
+      </div></details>
+
+      <h3 id="v1-assignment">没有 SimOTA 的时候，谁负责学习哪个目标？</h3>
+      <p>分成两步：<strong>先按 GT 中心确定负责网格，再在该格的两个当前预测框中，选择与 GT 的 <span data-term="iou">IoU</span> 更高者承担定位监督。</strong>例如，上述 GT 由第 2 行、第 3 列负责；若本次两个框与它的 IoU 分别为 0.30 和 0.65，便选择第二个框预测器。判断依据是当前输出，不是比较预设 Anchor 形状。</p>
+      <p>网格归属由本次输入和标注决定；格内获选的预测器会随当前预测变化。因此，初代已经有读取预测质量的责任选择，不是整个训练开始前分配一次就不再改变。不过它只在中心所在格内选择，并非后来跨位置的 SimOTA、TAL 或全局集合匹配。</p>
+      <p><strong>两个框预测器不等于同格可以可靠监督两个不同目标。</strong>原始设计每格只有一套类别与目标责任表示。同格出现多个目标中心时，会发生表示和监督冲突；不能把两个框理解成两个独立的、带各自类别标签的完整目标槽位。</p>
+
+      <h3 id="v1-loss">损失怎样让这些输出各自学到有用的含义？</h3>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="初代 YOLO 各输出的监督范围，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看监督范围。</p><table class="loss-family-table"><caption>原论文的加权平方误差目标；“负责”指本次被选中的框预测器</caption><thead><tr><th scope="col">输出</th><th scope="col">监督对象与目标</th><th scope="col">这样安排的原因</th></tr></thead><tbody>
+        <tr><th scope="row">中心与宽高</th><td>只对负责预测器约束 x、y、√w、√h，坐标权重 λcoord=5。</td><td>把定位责任集中到选中预测器；宽高平方根使同样绝对尺寸误差对小框更敏感。</td></tr>
+        <tr><th scope="row">负责框的置信度</th><td>目标是其当前预测框与 GT 的 IoU。</td><td>高分既需要指向目标，也应反映定位质量；该分数不是单纯的类别概率。</td></tr>
+        <tr><th scope="row">未负责框的置信度</th><td>按 no-object 项压向 0，权重 λnoobj=0.5。</td><td>降低无目标或未负责预测的高分，同时减轻大量背景项对训练的主导。</td></tr>
+        <tr><th scope="row">网格类别</th><td>有目标的负责网格学习类别；空网格不计算类别项。</td><td>类别按网格组织，并非给每个框分别设置一套类别监督。</td></tr>
+      </tbody></table></div>
+      <p>四类约束合起来，才把固定长度输出塑造成“框在哪里、预测是否可信、目标是什么”。这里只使用当前 IoU 来选责任或设置置信度目标，<strong>不等于定位损失已经是 IoU / CIoU</strong>；平方误差也不完全对齐最终检测指标。</p>
+      <details id="v1-training-recipe"><summary>训练、激活与实现口径：哪些应按原论文理解？</summary><div class="detail-content">
+        <p>原论文先以 224×224 输入在 ImageNet 上预训练前 20 个卷积层，再添加 4 个卷积层与 2 个全连接层，转为 448×448 检测训练。隐藏层使用负半轴斜率 0.1 的 Leaky ReLU，最后一层为线性输出；不能把后来的 BCE、SiLU 或 DFL 当作初代配方。</p>
+        <p>训练使用动量 SGD、分阶段学习率和初期较小学习率，并通过全连接层后的 Dropout、随机缩放平移及曝光、饱和度变化抑制过拟合。这些是配套训练策略，不改变每格共享类别的输出限制。</p>
+        <p><strong>原论文和仓库后续配置要分开：</strong>本节固定 S=7、B=2、C=20。2026-11-26 核对的原作者 master 分支 <code>cfg/yolov1.cfg</code> 已含 BN、local 层、B=3 和 1715 个输出，与论文配置不同。它能作为实现演变的参照，不能用来反推论文原版就是同一结构。<a href="https://github.com/pjreddie/darknet/blob/master/cfg/yolov1.cfg" target="_blank" rel="noreferrer">仓库配置</a> · <a href="https://github.com/pjreddie/darknet/blob/master/src/detection_layer.c" target="_blank" rel="noreferrer">检测层实现</a>。</p>
+      </div></details>
+
+      <h3 id="v1-inference">一次前向之后，为什么还需要分数筛选和 NMS？</h3>
+      <p>每个框输出自己的置信度，含义为 <code>Pr(Object) × IoU</code>；每格另有共享的条件类别输出 <code>Pr(Class | Object)</code>。推理时两者相乘，得到该框的类别相关分数。若某格的“狗”类别输出为 0.8、其中一个框的置信度为 0.6，该框的“狗”分数就是 0.48。这是假设数值；推理时没有 GT，置信度来自网络估计，不是现场拿真实框计算 IoU。</p>
+      <p>先按分数过滤，再用 <span data-term="nms">NMS</span> 抑制同类重叠预测。虽然训练给一个目标选一个负责预测器，相邻网格或其他预测仍可能对同一目标给出高分；训练责任的唯一性不保证最终输出集合没有重复。<strong>“You Only Look Once”指整图一次网络求值；初代的端到端联合训练，与后来 NMS-free 的输出去重设计不是同一层含义。</strong></p>
+
+      <h3 id="v1-evolution">它解决了什么，又留下了什么问题？</h3>
+      <p>初代证明了统一整图预测可以达到实时速度，也能利用整图上下文减少部分背景误检；代价是当时定位精度和召回仍有不足。粗网格、较粗的深层特征与每格共享类别，尤其不利于密集小目标。固定全连接输出也不如后来全卷积结构便于调整输入与输出网格。这里应把“统一、实时”的贡献与“定位仍有限”的边界一起保留。</p>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="YOLOv1 到 v3 的结构与问题衔接，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看演进关系。</p><table class="evolution-table"><caption>只比较原始路线的关键改变；多尺度训练与多个尺度输出不是一回事</caption><thead><tr><th scope="col">版本</th><th scope="col">核心设计</th><th scope="col">相对前面的问题，改变了什么？</th></tr></thead><tbody>
+        <tr><th scope="row">YOLOv1</th><td>整图卷积 + 全连接；单个 7×7 输出网格；不使用预设宽高 Anchor。</td><td>统一定位与类别预测，但同格多目标、细粒度定位和召回受到限制。</td></tr>
+        <tr><th scope="row">YOLOv2</th><td>改为全卷积检测，采用聚类 Anchor、逐 Anchor 类别预测、BN、细粒度特征直通与多尺度训练。</td><td>增加预测机会、改善学习与召回；多尺度训练主要改变输入分辨率，不等于 v3 式三个输出尺度。普通检测模型 v2 也要与 YOLO9000 的联合训练区分。</td></tr>
+        <tr><th scope="row">YOLOv3</th><td>Darknet-53 残差主干、跨层融合，在三个尺度输出 Anchor 检测预测。</td><td>把不同分辨率的特征用于检测，为尺度差异和小目标提供更合适的预测条件；仍不是三个尺度各自独占小、中、大目标。</td></tr>
+      </tbody></table></div>
+      <p>所以，初代没有 Anchor，并不意味着它已经具备现代 Anchor-free 检测器的全部设计。后来 YOLOX、v8 等是在不同特征结构、输出头与样本分配条件下去掉预设宽高，不能概括成“重新回到 v1”，也不能把三尺度、解耦头或 NMS-free 倒写成初代已有的特点。</p>
+      <details id="v1-results"><summary>原论文的速度与精度结果应该怎样读？</summary><div class="detail-content"><p>原论文表 1 中，标准 YOLO 为 VOC 2007 mAP 63.4、45 FPS；更小的 Fast YOLO 为 52.7、155 FPS。论文说明其网络速度以 Titan X、单图非批处理衡量。这些结果用于说明当时的精度与速度取舍，不与今天不同数据集、AP 定义、硬件和推理后端的数字直接排名；本地没有复现这些指标。Fast YOLO 的较浅网络也不应与标准版 24 个卷积层混为一谈。</p></div></details>
+
+      <h3 id="v1-tracks">把初代放回六条机制主线</h3>
+      <ol class="topic-links">
+        <li><strong>① 特征提取与多尺度融合：</strong>整图卷积提取特征，尚无后来常见的跨层多尺度检测结构。</li>
+        <li><strong>② 预测头与边界框表示：</strong>全连接输出、中心宽高、无预设 Anchor；每格的两个框共享类别。</li>
+        <li><strong>③ 样本分配与任务对齐：</strong>GT 中心确定网格，格内按当前 IoU 选择负责框；与<a href="../../交互图解/03_样本分配/样本分配与监督机制.html">后续样本分配</a>对照其候选范围与责任规则。</li>
+        <li><strong>④ 损失与训练监督：</strong>加权平方误差、宽高平方根、负责与未负责预测分别监督；继续看<a href="../../交互图解/01_YOLO整体框架/index.html#losses">各版本损失</a>的变化。</li>
+        <li><strong>⑤ 重复预测与 NMS-free：</strong>一次前向仍可产生重复预测，原版使用 NMS；与<a href="../../交互图解/02_YOLOv10/YOLOv10原理与演进.html">v10 的集合去重目标</a>区分。</li>
+        <li><strong>⑥ 精度、效率与场景适配：</strong>实时统一检测成立，但密集小目标、召回和定位误差构成下一代设计的出发点。</li>
+      </ol>
+      <p class="math-source">核对日期：2026-11-26。原始依据：<a href="https://arxiv.org/html/1506.02640v5#S2" target="_blank" rel="noreferrer">YOLO 原论文 §2：输出、训练、推理与局限</a> · <a href="https://arxiv.org/html/1612.08242v1#S2" target="_blank" rel="noreferrer">YOLO9000 / v2 §2：全卷积、Anchor 与召回改进</a> · <a href="https://arxiv.org/html/1804.02767#S2" target="_blank" rel="noreferrer">YOLOv3 §2：三尺度预测与残差主干</a>。<a href="../../交互图解/01_YOLO整体框架/index.html#compare-v1-v3">切换到 v1 / v3 对照</a>。</p>
+    </section></main><footer class="wrap">按原论文 VOC 配置解释，不把仓库后续变体倒写成初代原版。</footer></body></html>

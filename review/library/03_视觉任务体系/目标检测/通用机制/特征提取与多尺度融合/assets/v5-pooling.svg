@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420" role="img" aria-labelledby="title desc">
+  <title id="title">上下文池化：SPP 并行，SPPF 串行</title>
+  <desc id="desc">图中输入是模块内第一层卷积的输出。SPP 对这份特征分别做 5、9、13 三种大小的最大池化；SPPF 连续做三次 5×5 最大池化，累计覆盖 5、9、13。两者均将输入与三份结果沿通道拼接。步长均为 1，填充保持特征图宽高。</desc>
+  <style>
+    text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#202e29;font-size:16px}.small{font-size:14px;fill:#526259}.title{font-weight:700}.node{fill:#fffef9;stroke:#b8c5b9;stroke-width:1.2}.focus{fill:#e6eee2;stroke:#245b44;stroke-width:1.2}.flow{fill:none;stroke:#245b44;stroke-width:1.6;marker-end:url(#arrow)}.wire{fill:none;stroke:#245b44;stroke-width:1.6}.rule{stroke:#b8c5b9;stroke-width:1}
+  </style>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#245b44"/></marker></defs>
+  <text x="16" y="26" class="title">SPP · 三个窗口各自读取输入</text>
+  <rect class="node" x="108" y="40" width="144" height="32" rx="5"/>
+  <text x="180" y="62" text-anchor="middle">同一份特征</text>
+  <path class="wire" d="M180 72V86M42 86H318"/>
+  <g class="flow"><path d="M42 86V101"/><path d="M134 86V101"/><path d="M226 86V101"/><path d="M318 86V101"/></g>
+  <rect class="node" x="8" y="104" width="68" height="34" rx="5"/>
+  <g class="focus"><rect x="100" y="104" width="68" height="34" rx="5"/><rect x="192" y="104" width="68" height="34" rx="5"/><rect x="284" y="104" width="68" height="34" rx="5"/></g>
+  <g text-anchor="middle"><text x="42" y="127">原特征</text><text x="134" y="127">5×5</text><text x="226" y="127">9×9</text><text x="318" y="127">13×13</text></g>
+  <g class="flow"><path d="M42 138V156"/><path d="M134 138V156"/><path d="M226 138V156"/><path d="M318 138V156"/></g>
+  <rect class="node" x="8" y="159" width="344" height="34" rx="5"/><text x="180" y="182" text-anchor="middle">原特征 + 三个池化结果：沿通道拼接</text>
+  <path class="rule" d="M16 209H344"/>
+  <text x="16" y="236" class="title">SPPF · 下一次接着上一次的结果算</text>
+  <rect class="node" x="8" y="252" width="68" height="35" rx="5"/>
+  <g class="focus"><rect x="100" y="252" width="68" height="35" rx="5"/><rect x="192" y="252" width="68" height="35" rx="5"/><rect x="284" y="252" width="68" height="35" rx="5"/></g>
+  <g class="flow"><path d="M77 270H97"/><path d="M169 270H189"/><path d="M261 270H281"/></g>
+  <g text-anchor="middle"><text x="42" y="275">原特征</text><text x="134" y="275">5×5</text><text x="226" y="275">5×5</text><text x="318" y="275">5×5</text></g>
+  <g class="flow"><path d="M42 287V306"/><path d="M134 287V306"/><path d="M226 287V306"/><path d="M318 287V306"/></g>
+  <rect class="node" x="8" y="309" width="344" height="34" rx="5"/><text x="180" y="332" text-anchor="middle">原特征 + 三次池化结果：沿通道拼接</text>
+  <text x="16" y="368" class="small">步长 1、补边保持宽高；每多做一次 5×5，</text>
+  <text x="16" y="389" class="small">覆盖边长增加 4：5 → 9 → 13。</text>
+  <text x="16" y="411" class="small">窗口覆盖相同；实际延迟要看设备和实现。</text>
+</svg>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YOLOv7 · 哪些计算要留到推理？</title>
+<link rel="stylesheet" href="../../交互图解/01_YOLO整体框架/styles.css"><link rel="stylesheet" href="../../交互图解/01_YOLO整体框架/reader-navigation.css">
+<link rel="stylesheet" href="../../通用机制/特征提取与多尺度融合/topic.css"><link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+<script src="../../交互图解/01_YOLO整体框架/reader-navigation.js" defer></script><script src="../../交互图解/01_YOLO整体框架/terms-yolo.js" defer></script>
+<script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script><script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head>
+<body id="top" class="has-quick-nav topic-page" data-topic-reader="true"><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div>
+<a class="skip-link" href="#route">跳到检测流程</a>
+<nav class="quick-nav" aria-label="快捷目录"><details open><summary>快捷目录</summary><ol>
+<li><a href="#route">01 一张图怎么出框</a></li><li><a href="#features">02 为何拼接中间层</a></li><li><a href="#training">03 谁负责一个标注框</a></li><li><a href="#deploy">04 训练分支怎么收回</a></li><li><a href="#variants">05 哪些属于其他型号</a></li>
+</ol><div class="topic-switch"><a href="../YOLO11/index.html#compare">回到四版对照</a><a href="../../交互图解/01_YOLO整体框架/index.html">YOLO 总览</a></div></details></nav>
+<header class="masthead wrap"><span>视觉任务体系 / 目标检测 / 模型原理</span><a href="../YOLO11/index.html#compare">v5 · v7 · v8 · 11 对照</a></header>
+<main class="wrap">
+<header class="topic-hero"><p class="eyebrow">YOLOv7 · 标准 P5 水平框检测</p><h1>YOLOv7：哪些计算要留到推理？</h1><p class="lead">直接给实时检测器加层，训练和上线通常都要为新层付出算力。YOLOv7 把两类改动分开：有些路径一直保留，让不同深度的特征一起参与判断；有些分支只让训练更充分，上线前可以等价合并，或在特定型号中直接去掉。</p>
+<p class="scope">以下以作者仓库的标准 <code>cfg/training/yolov7.yaml</code> 为准。P5 指最粗的预测层步长为 32，不是五个尺度都参与预测。论文中的 W6、E6E 在最后单独说明。</p></header>
+<section class="chapter" id="route"><p class="eyebrow">01 · 主线①②⑤　从特征到输出</p><h2>同一处损伤，为什么会出现好几个候选框？</h2>
+<p>输入一张 640×640 照片。主干逐步降低分辨率，深层的 SPPCSPC 用不同范围的池化汇集上下文；特征融合部分再把粗层信息送到细层，也把融合后的细层信息送回粗层。最终做预测的是 80×80、40×40、20×20 三张特征图。</p>
+<figure class="single-diagram"><img src="../../通用机制/特征提取与多尺度融合/assets/network-v7.svg" width="360" height="374" alt="标准 YOLOv7 有三层特征，各经 RepConv 进入每位置有三种宽高模板的检测头；最后解码并去重。"><figcaption>纵向读是一次推理。中间是三张不同分辨率的特征图；每张图内部的三个宽高模板是另一回事。</figcaption></figure>
+<p>每个位置放三种先验框。检测头为每个模板同时报中心与宽高的调整量、目标性和各类别分数。三层一共给出 <strong>3 × (80² + 40² + 20²) = 25,200 个候选</strong>，不是 25,200 个缺陷。常规多类别推理用目标性乘类别分数，再以 NMS 抑制重叠的同类框。</p>
+<p class="math-source">对照：<a href="https://github.com/WongKinYiu/yolov7/blob/main/cfg/training/yolov7.yaml">标准配置</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/models/yolo.py">IDetect 解码</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/utils/general.py">筛框与 NMS</a>。</p></section>
+<section class="chapter" id="features"><p class="eyebrow">02 · 主线①　特征提取</p><h2>深层能读懂整块区域，为什么还要接回中间层？</h2>
+<p>若只拿一串卷积的最后输出，较早得到的边缘证据必须经过后面所有变换才能抵达出口。标准 v7 的主干让较短支路和长支路上<strong>选定的中间结果</strong>在末端拼接。例如同一块里，一支走 1×1 卷积，另一支继续走多次 3×3 卷积，最后把几种深度的输出交给 1×1 卷积重新混合。这是同一尺度内部的 ELAN 式聚合，和上、下采样连接不同尺度要分开看。</p>
+<p>这样做保留了不同长度的信息与梯度路径；与此同时，拼接会改变后续层接收的通道数。论文提出的联合缩放正针对这个问题：加深计算块时，也要考虑过渡层的宽度。多拼几层不等于免费，更不保证一定能找回缩放时已经丢掉的细痕。</p>
+<details><summary>ELAN 和论文标题图中的 E-ELAN 是一回事吗？</summary><p>ELAN 式结构说明多条长短不同的路径怎样汇合。论文的 E-ELAN 在此基础上，用分组卷积扩展特征组，再重排、合并，尽量保留原来的梯度路径。论文第 5.1 节写明，将这个扩展用于 E6 得到 E6E。读标准 P5 配置时，不应给每个多分支节点都画上分组重排。</p></details>
+<p class="math-source"><a href="https://arxiv.org/pdf/2207.02696#page=3">论文 §3：ELAN、E-ELAN 与缩放</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/cfg/training/yolov7.yaml#L18-L27">P5 主干的一个聚合节点</a>。</p></section>
+<section class="chapter" id="training"><p class="eyebrow">03 · 主线③④　样本分配与损失</p><h2>有了宽高模板，正样本就已经定了吗？</h2>
+<p>假设一张图只有一处磕碰。模板定义了候选框从哪种形状起步，却没有指定哪个候选负责这处磕碰。作者 <code>train.py</code> 的默认 OTA 路径先按标注宽高与模板的比例及邻近格位置收集候选，再读这一批图像的预测。预测框与标注的 IoU 用来估算该目标可分到几个样本；分类和定位的匹配代价决定具体选谁。如果同一个候选被多个目标争用，再按代价解决冲突。</p>
+<p>分配结束才算监督：被选中的候选学习框的位置，并在多类别任务中学习类别；目标性损失还约束背景位置。默认框损失使用 CIoU，目标性与多类别分类用 BCE。于是<strong>按模板出框</strong>可以和<strong>按当前预测动态分配</strong>同时成立。切换训练超参数可走另一条匹配路径，不能只凭模型名断定训练配方。</p>
+<p class="math-source"><a href="https://github.com/WongKinYiu/yolov7/blob/main/train.py#L326-L333">训练入口的 loss_ota 开关</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/utils/loss.py#L498">ComputeLossOTA：候选、匹配、损失</a>。</p></section>
+<section class="chapter" id="deploy"><p class="eyebrow">04 · 主线⑥　训练与推理成本</p><h2>RepConv 在训练时有多条支路，部署时为什么能只留一个卷积？</h2>
+<p>标准模型在三个检测尺度的预测层前各放一个 RepConv。以这里的配置为例，同一输入分别经过 3×3 卷积和 1×1 卷积，各自过批归一化，<strong>先把两路结果相加，再做一次激活</strong>。训练时，两路各有自己的参数。</p>
+<p>切到推理模式后，批归一化使用固定统计量，可以折进对应的卷积。把 1×1 核放到一个全零 3×3 核的正中央，再与另一支的核逐元素相加，偏置也相加，就得到作用相同的一个 3×3 卷积。这叫结构重参数化。它能减少部署图上的分支和算子调度；速度收益仍取决于导出方式和硬件。</p>
+<details><summary>为什么不能把前面的多分支聚合也全部折叠？</summary><p>等价合并依赖这里的线性求和关系，并且激活在求和之后。穿过多次非线性激活的卷积链，不满足同样条件；通道拼接也不是逐元素相加。ELAN 式聚合保留在推理图里。另一个常见混淆是把所有 RepConv 都画出恒等分支：作者实现只有输入输出通道相等且步长为 1 时才可带它，标准 P5 检测头前的三处都会改变通道数。</p></details>
+<p class="math-source"><a href="https://github.com/WongKinYiu/yolov7/blob/main/models/common.py#L410-L465">RepConv 的分支、激活与等价核</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/cfg/training/yolov7.yaml#L130-L135">三处 RepConv 的放置位置</a>。</p></section>
+<section class="chapter" id="variants"><p class="eyebrow">05 · 训练型改进的适用范围</p><h2>辅助头是另一种省下推理成本的做法。</h2>
+<p>W6 这样的配置在训练图里增加辅助检测头，让较早的特征也直接收到监督。论文的粗细分配让主头预测和真实标注共同指导两个头：给辅助头更宽的正样本范围，给主头更严格的目标。部署时只用主头。这里是<strong>舍去仅供训练的支路</strong>；RepConv 是<strong>等价合并仍有贡献的支路</strong>，两者原理不同。</p>
+<p>论文表 6 在 E6、1280 输入下比较辅助监督，COCO 验证 AP 从无辅助时的 55.6 提到粗细引导时的 55.9。这个结果是那组设置下的证据，不是标准 P5 加辅助头的结果：P5 的配置结尾是三尺度 IDetect，W6 训练配置才在末端列出主头与辅助头的两套输入。</p>
+<p class="math-source"><a href="https://arxiv.org/pdf/2207.02696#page=9">论文表 6：辅助头消融</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/cfg/training/yolov7-w6.yaml">W6 训练图</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/cfg/deploy/yolov7-w6.yaml">W6 部署图</a>。</p>
+<p class="topic-back"><a href="../YOLO11/index.html#compare">回到四版对照：v5、v7 还用模板；v8、11 换了什么？ →</a></p></section>
+</main></body></html>

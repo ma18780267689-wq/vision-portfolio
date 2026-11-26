@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOv5s · 每格三种宽高模板</title><desc id="d">6×6 步长2卷积后是C3和SPPF；融合网络输出三尺度，各层用一个预测卷积，为每个宽高模板输出框、目标性和类别。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOv5s · 每格三种宽高模板</text><text x="13" y="46" class="note" text-anchor="start">ultralytics/yolov5 v6.1 · 默认 P5 检测配置</text>
+<g><rect class="normal" x="13" y="58" width="334" height="42" rx="7"/><text x="180" y="84" class="label" text-anchor="middle">输入 → 6×6 卷积 / 步长 2</text></g>
+<path class="flow" d="M180 100V113"/>
+<g><rect class="normal" x="13" y="115" width="334" height="49" rx="7"/><text x="180" y="144.5" class="label" text-anchor="middle">主干卷积、C3 → 深层 SPPF</text></g>
+<path class="flow" d="M180 164V177"/>
+<g><rect class="key" x="13" y="179" width="334" height="49" rx="7"/><text x="180" y="199.5" class="label" text-anchor="middle">上采样拼接，再下采样拼接</text><text x="180" y="217.5" class="small" text-anchor="middle">C3 在融合节点内处理通道</text></g>
+<path class="flow" d="M180 228V240H65V252"/>
+<path class="flow" d="M180 228V252"/>
+<path class="flow" d="M180 240H295V252"/>
+<g><rect class="normal" x="16" y="254" width="98" height="38" rx="7"/><text x="65" y="278" class="label" text-anchor="middle">步长 8</text></g>
+<g><rect class="normal" x="131" y="254" width="98" height="38" rx="7"/><text x="180" y="278" class="label" text-anchor="middle">步长 16</text></g>
+<g><rect class="normal" x="246" y="254" width="98" height="38" rx="7"/><text x="295" y="278" class="label" text-anchor="middle">步长 32</text></g>
+<path class="flow" d="M65 292V304"/>
+<path class="flow" d="M180 292V304"/>
+<path class="flow" d="M295 292V304"/>
+<g><rect class="key" x="13" y="306" width="334" height="42" rx="7"/><text x="180" y="332" class="label" text-anchor="middle">各层 1×1 卷积 → 3 × (4 + 1 + 类别数)</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">每个模板同时预测框、目标性和类别；推理做 NMS。</text>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLO11 · C3k2 与深层注意力</title><desc id="d">C3k2出现在主干和融合节点，SPPF后接C2PSA位于主干深处。三尺度检测用类别分支与四边分布回归，常规推理使用NMS。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLO11 · C3k2 与深层注意力</text><text x="13" y="46" class="note" text-anchor="start">Ultralytics v8.3.0 · 常规水平框检测</text>
+<g><rect class="normal" x="13" y="58" width="334" height="44" rx="7"/><text x="180" y="85" class="label" text-anchor="middle">主干多阶段：下采样 → C3k2</text></g>
+<path class="flow" d="M180 102V113"/>
+<g><rect class="key" x="13" y="115" width="334" height="51" rx="7"/><text x="180" y="136.5" class="label" text-anchor="middle">主干最深端：SPPF → C2PSA</text><text x="180" y="154.5" class="small" text-anchor="middle">聚合上下文，再做部分通道注意力</text></g>
+<path class="flow" d="M180 166V177"/>
+<g><rect class="normal" x="13" y="179" width="334" height="52" rx="7"/><text x="180" y="201" class="label" text-anchor="middle">融合：上采样拼接，再下采样拼接</text><text x="180" y="219" class="small" text-anchor="middle">多个融合节点采用 C3k2</text></g>
+<path class="flow" d="M180 231V242"/>
+<g><rect class="normal" x="13" y="244" width="334" height="37" rx="7"/><text x="180" y="267.5" class="label" text-anchor="middle">三尺度检测头 · 步长 8 / 16 / 32</text></g>
+<path class="flow" d="M180 281V291H92V302"/><path class="flow" d="M180 291H268V302"/>
+<g><rect class="normal" x="13" y="304" width="158" height="40" rx="7"/><text x="92" y="329" class="label" text-anchor="middle">类别分数</text></g><g><rect class="key" x="189" y="304" width="158" height="40" rx="7"/><text x="268" y="329" class="label" text-anchor="middle">四边离散分布</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">常规检测路径解码后做 NMS，并非 v10 的双头。</text>
+</svg>

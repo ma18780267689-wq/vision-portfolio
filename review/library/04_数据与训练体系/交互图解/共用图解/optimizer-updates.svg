@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="363" viewBox="0 0 360 363" role="img" aria-labelledby="title desc">
+  <title id="title">同一层的梯度经过三种处理得到不同更新方向</title><desc id="desc">普通 SGD 使用当前梯度；Adam 按每个位置积累梯度及其平方并调整尺度；Muon 对适用权重的动量更新做矩阵正交化近似。每条路径把自己的更新用于原来的权重。</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#36664d"/></marker></defs>
+  <style>text{font:15px "Microsoft YaHei","PingFang SC",sans-serif;fill:#24352c}.h{font-weight:700}.s{font-size:13px;fill:#465a4b}.n{fill:#fdfbf5;stroke:#697f6c}.active{fill:#e6efe3;stroke:#396c50}.flow{fill:none;stroke:#36664d;stroke-width:1.7;marker-end:url(#arrow)}.branch{fill:none;stroke:#36664d;stroke-width:1.7}</style>
+  <rect x="34" y="7" width="292" height="47" rx="6" class="active"/><text x="180" y="27" text-anchor="middle" class="h">同一层权重 W</text><text x="180" y="45" text-anchor="middle" class="s">反向传播给出同形状梯度 G</text>
+  <path d="M180 54V67H28V268" class="branch"/>
+  <path d="M28 101H50M28 185H50M28 268H50" fill="none" stroke="#36664d" stroke-width="1.7"/><path d="M47 101H54" class="flow"/><path d="M47 185H54" class="flow"/><path d="M47 268H54" class="flow"/>
+  <rect x="57" y="76" width="286" height="54" rx="6" class="n"/><text x="70" y="98" class="h">普通 SGD｜取当前梯度</text><text x="70" y="119" class="s">每个位置的 D 直接取该位置的 G。</text>
+  <rect x="57" y="151" width="286" height="66" rx="6" class="n"/><text x="70" y="175" class="h">Adam｜逐位置看历史</text><text x="70" y="200" class="s">用梯度平方的历史尺度，调整梯度趋势。</text>
+  <rect x="57" y="235" width="286" height="66" rx="6" class="n"/><text x="70" y="259" class="h">Muon｜整块看矩阵</text><text x="70" y="282" class="s">在适用权重上，联合调整动量的矩阵模式。</text>
+  <path d="M16 319H344" stroke="#b7c4b8"/><text x="180" y="344" text-anchor="middle" class="h">各自得到 D，再以 W − ηD 更新原权重。</text>
+</svg>

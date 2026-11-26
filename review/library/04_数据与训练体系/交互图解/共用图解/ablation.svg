@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="265" viewBox="0 0 360 265" role="img" aria-labelledby="title desc">
+  <title id="title">沿同一行比较，只改变损失权重</title><desc id="desc">上行在 STAL 关闭时比较固定和渐进权重，下行在 STAL 开启时重复同样的比较；横向两次增量的差反映配置间的相互作用。</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#36664d"/></marker></defs>
+  <style>text{font:15px "Microsoft YaHei","PingFang SC",sans-serif;fill:#24352c}.h{font-weight:700}.s{font-size:13px;fill:#465a4b}.n{fill:#fdfbf5;stroke:#697f6c}.active{fill:#e6efe3;stroke:#396c50}.flow{fill:none;stroke:#36664d;stroke-width:1.7;marker-end:url(#arrow)}.branch{fill:none;stroke:#36664d;stroke-width:1.7}</style>
+  <text x="16" y="24" class="h">同一个问题，做两次对照</text>
+  <text x="16" y="47" class="s">每一行只改变权重调度；箭头不表示精度升高。</text>
+  <text x="16" y="83" class="h">STAL 关闭</text><text x="341" y="83" text-anchor="end" class="s">读取横向差值 Δ₀</text>
+  <rect x="16" y="94" width="132" height="39" rx="6" class="n"/><rect x="212" y="94" width="132" height="39" rx="6" class="active"/>
+  <path d="M150 114H207" class="flow"/><text x="82" y="119" text-anchor="middle">固定权重</text><text x="278" y="119" text-anchor="middle">渐进权重</text>
+  <text x="16" y="164" class="h">STAL 开启</text><text x="341" y="164" text-anchor="end" class="s">读取横向差值 Δ₁</text>
+  <rect x="16" y="175" width="132" height="39" rx="6" class="n"/><rect x="212" y="175" width="132" height="39" rx="6" class="active"/>
+  <path d="M150 195H207" class="flow"/><text x="82" y="200" text-anchor="middle">固定权重</text><text x="278" y="200" text-anchor="middle">渐进权重</text>
+  <text x="16" y="242" class="h">Δ₁ − Δ₀：</text><text x="97" y="242">权重调度的作用变了多少？</text>
+</svg>

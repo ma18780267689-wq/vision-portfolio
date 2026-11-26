@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 204" width="360" height="204" role="img" aria-labelledby="title desc">
+  <title id="title">IoU：交集占并集的比例</title>
+  <desc id="desc">实线框与虚线框都是 3 格宽、2 格高。两框在水平方向错开 1 格。中间带斜纹的 4 格是交集，两框合起来共覆盖 8 格，所以 IoU 为 4 除以 8，即 0.5。</desc>
+  <style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#202e29;font-size:16px}.fine{font-size:14px;fill:#526259}</style>
+  <defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#e6eee2"/><path d="M-2 2L2-2M0 8L8 0M6 10L10 6" fill="none" stroke="#74917b" stroke-width="1"/></pattern></defs>
+  <g fill="none" stroke-width="2.5"><path d="M73 19H99" stroke="#245b44"/><path d="M201 19H227" stroke="#79583a" stroke-dasharray="6 4"/></g>
+  <text x="105" y="25">框 A</text><text x="233" y="25">框 B</text>
+  <rect x="84" y="41" width="192" height="96" fill="#fffef9"/><rect x="132" y="41" width="96" height="96" fill="url(#hatch)"/>
+  <path d="M84 89H276M180 41V137" fill="none" stroke="#9ca79c" stroke-width="1"/>
+  <rect x="84" y="41" width="144" height="96" fill="none" stroke="#245b44" stroke-width="3"/>
+  <rect x="132" y="41" width="144" height="96" fill="none" stroke="#79583a" stroke-width="3" stroke-dasharray="7 5"/>
+  <text x="180" y="163" text-anchor="middle" class="fine">斜纹是交集：4 格；全部覆盖是并集：8 格。</text>
+  <text x="180" y="191" text-anchor="middle" font-weight="700">IoU = 4 ÷ 8 = 0.5</text>
+</svg>

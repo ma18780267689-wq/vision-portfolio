@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOv8 · 框头与类别头分开</title><desc id="d">C2f 主干与 SPPF 提特征，C2f 双向融合输出三尺度。分类头预测类别，框头预测四边的离散分布，再解码；没有独立目标性分支。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOv8 · 框头与类别头分开</text><text x="13" y="46" class="note" text-anchor="start">Ultralytics v8.3.0 · 常规水平框检测</text>
+<g><rect class="normal" x="13" y="58" width="334" height="47" rx="7"/><text x="180" y="77.5" class="label" text-anchor="middle">主干：逐级下采样 + C2f</text><text x="180" y="95.5" class="small" text-anchor="middle">深层用 SPPF 汇集多范围上下文</text></g>
+<path class="flow" d="M180 105V117"/>
+<g><rect class="normal" x="13" y="119" width="334" height="47" rx="7"/><text x="180" y="138.5" class="label" text-anchor="middle">融合：上采样 / 下采样 + 拼接</text><text x="180" y="156.5" class="small" text-anchor="middle">融合节点继续使用 C2f</text></g>
+<path class="flow" d="M180 166V178"/>
+<g><rect class="key" x="13" y="180" width="334" height="39" rx="7"/><text x="180" y="204.5" class="label" text-anchor="middle">三层特征 → 各层各自预测</text></g>
+<path class="flow" d="M180 219V231H92V243"/><path class="flow" d="M180 231H268V243"/>
+<g><rect class="normal" x="13" y="245" width="158" height="56" rx="7"/><text x="92" y="269" class="label" text-anchor="middle">类别头</text><text x="92" y="287" class="small" text-anchor="middle">逐类分数</text></g><g><rect class="key" x="189" y="245" width="158" height="56" rx="7"/><text x="268" y="269" class="label" text-anchor="middle">框头</text><text x="268" y="287" class="small" text-anchor="middle">四边的离散分布</text></g>
+<path class="flow" d="M92 301V313H180V325"/><path class="plain" d="M268 301V313H180"/>
+<g><rect class="normal" x="13" y="327" width="334" height="22" rx="7"/><text x="180" y="343" class="label" text-anchor="middle">解码与常规 NMS</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">没有独立的目标性通道；DFL 是训练监督。</text>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">标准 YOLOv7 · 三层带模板预测</title><desc id="d">主干在同一尺度并联短路与卷积链并拼接中间特征，深层经 SPPCSPC 后与主干三层做双向融合；三个尺度各经 RepConv 进入带模板的检测头。每处三种模板，常规推理再做 NMS。</desc>
+<defs><marker id="arrow" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-size:20px;font-weight:700}.small{font-size:13px;fill:#455e50}.label{font-size:15px;font-weight:600}.node,.key{stroke-width:1.2}.node{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.arrow{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round;marker-end:url(#arrow)}</style>
+<text x="13" y="24" class="title">YOLOv7 · 三层带模板预测</text>
+<text x="13" y="46" class="small">标准 P5 水平框检测 · 以 640×640 输入为例</text>
+<rect x="13" y="58" width="334" height="48" rx="7" class="node"/><text x="180" y="79" text-anchor="middle" class="label">主干：卷积下采样，聚合不同深度的特征</text><text x="180" y="97" text-anchor="middle" class="small">较短支路与卷积链的部分中间输出拼接</text>
+<path class="arrow" d="M180 106V119"/>
+<rect x="13" y="122" width="334" height="48" rx="7" class="node"/><text x="180" y="143" text-anchor="middle" class="label">深层 SPPCSPC，再与主干特征双向融合</text><text x="180" y="161" text-anchor="middle" class="small">先上采样拼接，再下采样拼接</text>
+<path class="arrow" d="M180 170V183H65V195"/><path class="arrow" d="M180 170V195"/><path class="arrow" d="M180 183H295V195"/>
+<g text-anchor="middle"><rect x="13" y="198" width="104" height="53" rx="7" class="key"/><text x="65" y="219" class="label">80×80</text><text x="65" y="239" class="small">步长 8</text>
+<rect x="128" y="198" width="104" height="53" rx="7" class="key"/><text x="180" y="219" class="label">40×40</text><text x="180" y="239" class="small">步长 16</text>
+<rect x="243" y="198" width="104" height="53" rx="7" class="key"/><text x="295" y="219" class="label">20×20</text><text x="295" y="239" class="small">步长 32</text></g>
+<path class="arrow" d="M65 251V265"/><path class="arrow" d="M180 251V265"/><path class="arrow" d="M295 251V265"/>
+<rect x="13" y="269" width="334" height="48" rx="7" class="node"/><text x="180" y="290" text-anchor="middle" class="label">三层各自经过 RepConv，再作预测</text><text x="180" y="308" text-anchor="middle" class="small">每格 3 个模板；每个模板报框、目标性和类别</text>
+<path class="arrow" d="M180 317V330"/>
+<rect x="13" y="333" width="334" height="33" rx="7" class="key"/><text x="180" y="355" text-anchor="middle" class="label">解码候选框 → 按分数筛选 → NMS</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOv9-C · 训练多一条信息路径</title><desc id="d">图像经GELAN式主干进入主预测分支；图像与主干不同层的特征也进入训练辅助路径。部署时使用转换后的主分支，与v10的一对一去重不同。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOv9-C · 训练多一条信息路径</text><text x="13" y="46" class="note" text-anchor="start">原作者 YOLOv9-C · 主分支与 PGI 辅助监督</text>
+<path class="train" d="M347 78H354V219H349"/><g><rect class="normal" x="13" y="58" width="334" height="40" rx="7"/><text x="180" y="83" class="label" text-anchor="middle">输入图像</text></g>
+<path class="flow" d="M180 98V111"/>
+<g><rect class="key" x="13" y="113" width="334" height="49" rx="7"/><text x="180" y="133.5" class="label" text-anchor="middle">主干：RepNCSPELAN4 + ADown</text><text x="180" y="151.5" class="small" text-anchor="middle">多层保留特征</text></g>
+<path class="flow" d="M180 162V176H92V190"/><path class="flow" d="M180 176H268V190"/>
+<g><rect class="key" x="13" y="192" width="158" height="56" rx="7"/><text x="92" y="216" class="label" text-anchor="middle">主预测路径</text><text x="92" y="234" class="small" text-anchor="middle">SPPELAN 与跨层融合</text></g><g><rect class="aux" x="189" y="192" width="158" height="56" rx="7"/><text x="268" y="216" class="label" text-anchor="middle">训练辅助路径</text><text x="268" y="234" class="small" text-anchor="middle">融合输入及多层特征</text></g>
+<path class="flow" d="M92 248V264"/>
+<path class="train" d="M268 248V264"/>
+<g><rect class="key" x="13" y="266" width="158" height="50" rx="7"/><text x="92" y="287" class="label" text-anchor="middle">三尺度主预测</text><text x="92" y="305" class="small" text-anchor="middle">保留用于部署</text></g><g><rect class="aux" x="189" y="266" width="158" height="50" rx="7"/><text x="268" y="287" class="label" text-anchor="middle">辅助预测与监督</text><text x="268" y="305" class="small" text-anchor="middle">训练时提供梯度</text></g>
+<path class="flow" d="M92 316V325"/>
+<g><rect class="normal" x="13" y="327" width="158" height="22" rx="7"/><text x="92" y="343" class="label" text-anchor="middle">推理：主预测 + NMS</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">辅助分支服务于训练信息，不承担免 NMS 的任务。</text>
+</svg>

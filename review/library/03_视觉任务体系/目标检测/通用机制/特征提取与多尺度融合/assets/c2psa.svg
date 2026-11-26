@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="464" viewBox="0 0 360 464" role="img" aria-labelledby="title desc">
+  <title id="title">C2PSA：只让一部分通道交换远处的信息</title>
+  <desc id="desc">SPPF 输出经 1×1 投影，沿通道拆成两支，空间网格不变。左支直达拼接；右支经一个或多个 PSABlock，块内有带残差连接的空间自注意力和前馈变换。两路拼接并经 1×1 卷积融合。</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#245b44"/></marker></defs>
+  <style>text{font:16px "Microsoft YaHei","PingFang SC",sans-serif;fill:#202e29;text-anchor:middle}.small{font-size:13px;fill:#46594c}.box{fill:#fffef9;stroke:#a7b7aa}.focus{fill:#e6eee2;stroke:#245b44}.arrow{fill:none;stroke:#245b44;stroke-width:1.6;marker-end:url(#arrow)}</style>
+  <text x="180" y="25">深层特征 · SPPF 输出</text>
+  <path class="arrow" d="M180 33V49"/><rect class="box" x="90" y="52" width="180" height="39" rx="6"/><text x="180" y="77">1×1 卷积投影</text>
+  <path class="arrow" d="M180 92V110"/><text x="180" y="132">按通道拆分，空间网格不变</text>
+  <path class="arrow" d="M180 144H62V316H132"/><text x="95" y="223" class="small">保留</text>
+  <path class="arrow" d="M180 144H250V166"/><rect class="focus" x="159" y="169" width="178" height="107" rx="6"/>
+  <text x="248" y="194">PSABlock × n</text><text x="248" y="218" class="small">Q 与各位置的 K 匹配</text><text x="248" y="240" class="small">按所得权重汇总各位置的 V</text><text x="248" y="264" class="small">块内另有残差和前馈变换</text>
+  <path class="arrow" d="M250 277V316H227"/><rect class="box" x="134" y="296" width="91" height="40" rx="6"/><text x="180" y="322">拼接</text>
+  <path class="arrow" d="M180 337V361"/><rect class="box" x="108" y="364" width="144" height="42" rx="6"/><text x="180" y="391">1×1 融合</text>
+  <text x="180" y="445" class="small">640 输入时，此处为 20×20 空间网格</text>
+</svg>

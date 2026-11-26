@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="342" viewBox="0 0 360 342" role="img" aria-labelledby="title desc">
+  <title id="title">YOLO11 的解耦头，在哪里分开，在哪里一起学</title>
+  <desc id="desc">一个尺度的共享特征图经过各自的分类与框分支。读同一参考位置的输出，分类侧预测类别，框侧预测四条边各十六个刻度的分数。训练对类别和框计算不同损失，按权重合成同一训练目标，再反向更新共享网络和两条分支。解耦的是预测变换，而不是分开训练两套模型。</desc>
+  <defs><marker id="a" viewBox="0 0 7 7" markerWidth="6" markerHeight="6" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7Z" fill="#42664f"/></marker></defs>
+  <style>text{font:14px 'Microsoft YaHei',system-ui,sans-serif;fill:#27382d}.title{font-size:18px;font-weight:700}.bold{font-size:15px;font-weight:700}.small{font-size:13px;fill:#516157}.common{fill:#fffef9;stroke:#91a392}.cls{fill:#e5efe4;stroke:#5f8868}.box{fill:#f7efde;stroke:#aa8b5b}.arrow{fill:none;stroke:#42664f;stroke-width:1.5;marker-end:url(#a)}</style>
+  <text x="12" y="24" class="title">解耦的是检测头中的两条预测路径</text>
+  <rect x="24" y="42" width="312" height="42" rx="6" class="common"/><text x="180" y="68" text-anchor="middle">同一尺度特征图 · 看同一参考位置 P</text>
+  <path class="arrow" d="M180 84v12H90v13"/><path class="arrow" d="M180 96h90v13"/>
+  <rect x="9" y="112" width="162" height="75" rx="6" class="cls"/><rect x="189" y="112" width="162" height="75" rx="6" class="box"/>
+  <g text-anchor="middle"><text x="90" y="133" class="bold">分类塔</text><text x="90" y="155">像不像划痕？</text><text x="90" y="176" class="small">每类一个分数</text>
+  <text x="270" y="133" class="bold">框回归塔</text><text x="270" y="155">划痕的边界在哪？</text><text x="270" y="176" class="small">每边 16 个刻度分数</text></g>
+  <path class="arrow" d="M90 187v15"/><path class="arrow" d="M270 187v15"/>
+  <g text-anchor="middle"><text x="90" y="223">类别监督：BCE</text><text x="270" y="223">框监督：CIoU + DFL</text></g>
+  <path class="arrow" d="M90 233v12h90v12"/><path class="arrow" d="M270 233v12h-90v12"/>
+  <rect x="24" y="260" width="312" height="43" rx="6" class="common"/><text x="180" y="286" text-anchor="middle" class="bold">各项加权 → 同一训练目标 → 反向传播</text>
+  <text x="180" y="328" text-anchor="middle" class="small">两路各学自己的变换；上游共享特征仍接受两路梯度。</text>
+</svg>

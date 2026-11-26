@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="串起 YOLO 至 YOLO26 的框架、演进、损失函数与激活函数；含版本对照、分类损失与梯度计算、激活曲线及训练推理交互。">
+  <title>YOLO 整体框架与演进 · 至 YOLO26</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="reader-navigation.css">
+  <script src="reader-navigation.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="evolution.js" defer></script>
+  <script src="loss-activation.js" defer></script>
+<link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+<script src="terms-yolo.js" defer></script>
+<script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script>
+<script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head>
+<body class="has-quick-nav" id="top"><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div>
+  <nav class="quick-nav" aria-label="快捷目录"><details open><summary>快捷目录</summary><ol><li><a href="#architecture">整体检测流程</a></li><li><a href="#learning-tracks">六条主线</a></li><li><a href="#evolution">演进关系</a></li><li><a href="#yolov1">初代的核心位置</a></li><li><a href="#anchor-priors">先验框机制</a></li><li><a href="#compare">两版本对照</a></li><li><a href="#explorer">训练 / 推理图解</a></li><li><a href="#versions">模型索引</a></li><li><a href="#training-deployment">训练与部署结构</a></li><li><a href="#losses">损失函数</a></li><li><a href="#activations">激活函数</a></li><li><a href="#sources">原始资料</a></li></ol><div class="topic-switch"><a href="../../通用机制/特征提取与多尺度融合/index.html">特征设计图解</a><a href="../../模型原理/YOLOv5/index.html">YOLOv5</a><a href="../../模型原理/YOLOv7/index.html">YOLOv7</a><a href="../../模型原理/YOLOv8/index.html">YOLOv8</a><a href="../02_YOLOv10/YOLOv10原理与演进.html">YOLOv10</a><a href="../../模型原理/YOLO11/index.html">YOLO11 原理</a><a href="../04_YOLO26/YOLO26原理与演进.html">YOLO26</a><a href="#top">回到顶部</a></div></details></nav>
+  <a class="skip-link" href="#explorer">跳到交互图解</a>
+  <header class="masthead wrap"><span>视觉任务体系 / 目标检测</span><a href="../04_YOLO26/YOLO26原理与演进.html">YOLO26 专题</a><a href="#sources">原始资料</a></header>
+  <main class="wrap">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">YOLO · 整体框架</p>
+      <h1 id="page-title">一张图，<br>怎样变成检测结果？</h1>
+      <p class="lead">目标检测的核心目标是找到图中的目标，并确定它们的类别和位置。特征提取、特征融合、预测与筛选，都是为了辅助达到这个目的。</p>
+      <p class="scope">图解以 <strong>YOLOX 式三尺度、Anchor-free 检测器</strong>为参照，先串起训练与推理。它不代表所有 YOLO 的逐层实现。图中图像、特征、框和分数均为教学示意，未运行真实模型。</p>
+      <p class="scope overview-scope">演进索引补充至 YOLO26，限定常规水平框检测。先看相对稳定的职责，再按问题对照不同分支；不将所有同名版本视为统一继承链，也不作性能排名。</p>
+      <p class="term-help">带点线的词可悬停查看释义；点按可固定，再点一次或按 Esc 收起。</p>
+      <nav class="reading-groups" aria-label="分层阅读入口"><div><span>01 · 定位整个系统</span><a href="#architecture">整体框架</a><a href="#evolution">原问题与演进</a><a href="#compare">两版本对照</a></div><div><span>02 · 按机制横向理解</span><a href="#learning-tracks">六条主线</a><a href="../../通用机制/特征提取与多尺度融合/index.html">特征设计与结构图</a><a href="#anchor-priors">先验框与预测表示</a></div><div><span>03 · 进入具体过程</span><a href="#explorer">训练与推理图解</a><a href="../../通用机制/训练调优与推理速度/index.html">训练调优与推理提速</a><a href="../../模型原理/YOLO11/index.html">独立读懂 YOLO11</a><a href="../../模型原理/YOLO11/index.html#compare">v5、v7、v8、11 的取舍</a><a href="#versions">各模型原理入口</a><a href="#training-deployment">训练与部署结构</a></div></nav>
+    </section>
+
+    <section id="architecture" class="foundation" aria-labelledby="identity-title">
+      <p class="eyebrow">先定位整个系统</p>
+      <h2 id="identity-title">YOLO 相对稳定的是检测范式，<br class="desktop-break">不是一套始终不变的积木。</h2>
+      <p>初代 YOLO 把完整图像直接映射为框和类别预测。后续许多分支继续围绕单阶段、密集预测和实时检测展开：共享图像特征，再从多个预测位置输出目标信息。它们不需要先独立提出候选区域，再逐区域分类。</p>
+      <p>这些特征并非 YOLO 独有，也不足以给所有同名模型下严格定义。YOLO 已经形成多个团队的技术分支，名称和版本号不能当作一条完整的继承链。初代的全连接输出头，也不能直接等同于后来常见的多尺度检测头。<a href="https://arxiv.org/html/1506.02640v5#S2" target="_blank" rel="noreferrer">初代论文 §2</a></p>
+      <div class="system-paths"><div><h3>推理：从图像到目标列表</h3><p>图像 → 特征提取 → 特征融合 → 检测头 → 解码与结果选择</p><p class="fine-print"><span data-term="backbone">主干 Backbone</span> 提取特征，<span data-term="neck">融合部分 Neck</span> 组织跨层信息，<span data-term="head">检测头 Head</span> 输出预测。是否需要 <span data-term="nms">NMS</span>，取决于训练与输出设计。</p></div><div><h3>训练：让预测逐渐满足监督</h3><p>预测 + 真实标注 → <span data-term="assignment">样本分配</span> → 损失 → 反向传播 → 优化器更新参数</p><p class="fine-print">实际先后与实现有关：分配也可能读取已解码的预测。训练分支、损失和优化器通常不随模型一同进入部署推理。</p></div></div>
+      <p class="fine-print">这是现代常见 YOLO 的职责分解，不要求源码必须把 Backbone、Neck、Head 分成三个类；初代也不能强行套入今天的每个模块名称。三尺度、Anchor、独立目标置信度、DFL 和 NMS 都不是所有 YOLO 必须保留的定义。</p>
+    </section>
+
+    <section id="learning-tracks" class="overview-section" aria-labelledby="learning-tracks-title">
+      <p class="eyebrow">六条主线 · 总览负责定位，专题负责展开</p><h2 id="learning-tracks-title">先确定在解决什么问题，<br>再进入具体模型。</h2>
+      <ol class="track-map">
+        <li><strong>特征提取与多尺度融合</strong><p>图像信息如何被采样、表达和组织？<a href="../../通用机制/特征提取与多尺度融合/index.html">设计原理与结构图</a></p></li>
+        <li><strong>预测头与边界框表示</strong><p>每个位置输出什么、怎样变成框？<a href="#anchor-priors">先验框</a> · <a href="#dfl-foundation">DFL 表示</a></p></li>
+        <li><strong>样本分配与任务对齐</strong><p>谁负责学习哪个 <span data-term="gt">GT</span>？<a href="../03_样本分配/样本分配与监督机制.html">监督机制</a> · <a href="../05_SimOTA与TAL/SimOTA与TAL样本分配.html">SimOTA / TAL</a></p></li>
+        <li><strong>损失与训练监督</strong><p>确定责任后，如何衡量与传递误差？<a href="#losses">损失</a> · <a href="#training-deployment">训练路径</a></p></li>
+        <li><strong>重复预测与 NMS-free</strong><p>怎样把大量候选变成目标集合？<a href="#explorer">NMS 图解</a> · <a href="../02_YOLOv10/YOLOv10原理与演进.html">v10 专题</a></p></li>
+        <li><strong>精度、效率与场景适配</strong><p>改动在数据与硬件上是否成立？<a href="../../通用机制/训练调优与推理速度/index.html">按现象查调优方法</a> · <a href="../../通用机制/特征提取与多尺度融合/index.html#hardware-aware">执行约束</a> · <a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html">实验设计</a></p></li>
+      </ol><p class="fine-print">六条主线是阅读同一系统的不同角度，不是六条互不相干的升级链。完整模型仍需把它们放回同一次训练与推理。</p>
+    </section>
+
+    <section id="evolution" class="overview-section" aria-labelledby="evolution-title">
+      <p class="eyebrow">把版本放回它要解决的问题</p><h2 id="evolution-title">保留的是检测目标，<br>变化的是达成目标的方式。</h2>
+      <p>这张表按问题组织，而不是把型号排成单向升级链。同一个模型可以同时改动多个环节，一项机制也可以被不同团队采用。</p>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="YOLO 演进问题主线，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看完整对照。</p><table class="evolution-table"><caption>从统一检测到 YOLO26；选择代表性节点，不声称穷尽全部 YOLO 分支</caption><thead><tr><th scope="col">原来的问题</th><th scope="col">代表性方向</th><th scope="col">核心改变</th></tr></thead><tbody>
+        <tr><th scope="row">怎样统一定位与分类？</th><td><a href="#yolov1">初代 YOLO</a></td><td>整图经过卷积与全连接层，输出单个网格组织的框、置信度和共享类别。按中心与格内当前 IoU 分配监督；推理仍可使用 NMS。</td></tr>
+        <tr><th scope="row">怎样处理不同尺度与框形状？</th><td>YOLOv2 / v3</td><td>引入先验框；v3 在多个尺度预测并融合层级特征。各层没有严格的小、中、大目标独占关系。</td></tr>
+        <tr><th scope="row">哪些位置应该学习哪个目标？</th><td>YOLOv5、YOLOX、v8 等</td><td>从几何匹配到结合预测质量的 SimOTA、任务对齐分配（<span data-term="tal">TAL</span>）；解耦头、Anchor-free 与样本分配是不同改动。</td></tr>
+        <tr><th scope="row">怎样保留信息并控制执行成本？</th><td>v4 / v6 / v7 / v9 / YOLO11 等</td><td>分别改进特征结构、训练信息或部署效率。v9 的可编程梯度信息（PGI）不等于更换优化器，YOLO11 的结构改动也不等于免 NMS。</td></tr>
+        <tr><th scope="row">丰富监督为什么留下重复输出？</th><td>YOLOv10</td><td>一对多辅助训练，一对一服务推理，一致匹配协调两条路径，使部署不必再靠 NMS 去重。</td></tr>
+        <tr><th scope="row">免 NMS 之后还剩哪些训练与部署成本？</th><td>YOLO26</td><td>在 YOLO11 结构基础上结合双分支，采用渐进损失、<span data-term="stal">STAL</span> 与 MuSGD，并移除 <span data-term="dfl">DFL</span>。原有设计可以被替换，并非只做累加。</td></tr>
+      </tbody></table></div>
+      <p class="fine-print">对应依据见<a href="#versions">版本索引</a>与<a href="#sources">原始来源</a>。NMS 是非极大值抑制；STAL 是小目标感知标签分配；DFL 是分布焦点损失，用于监督离散分布式框回归；MuSGD 是组合 Muon 与动量 SGD 的优化器。</p>
+      <details id="branch-map"><summary>版本号与团队分支：哪些不能当成直接前后代？</summary><div class="detail-content"><p><strong>原始路线：</strong>初代 YOLO、YOLOv2、YOLOv3。</p><p><strong>Ultralytics 的主要发布节点：</strong>YOLOv5、YOLOv8、YOLO11、YOLO26。数字不连续，不代表知识缺了一段。</p><p><strong>其他团队的研究或工程分支：</strong>YOLOv4、YOLOX、YOLOv6、YOLOv7、YOLOv9、YOLOv10、YOLOv12、YOLOv13 等。它们之间可能借鉴或共享部分实现，但不能仅凭名称推定全部继承。</p><p>因此，YOLO11 不必继承 YOLOv10 的免 NMS 推理，YOLO26 也不意味着吸收了 YOLOv12、v13 的全部结构。结构来源、训练方法与输出路径，需要分别核对。</p></div></details>
+    </section>
+
+    <section id="yolov1" class="overview-section" aria-labelledby="yolov1-title">
+      <p class="eyebrow">历史起点 · 只保留与后续演进有关的核心</p><h2 id="yolov1-title">初代 YOLO：统一整图定位与分类。</h2>
+      <p>初代以一个网络从整图预测框、置信度与类别，建立实时单阶段检测的重要路线。原论文 VOC 配置为 448×448 输入、24 个卷积层加 2 个全连接层，输出 7×7×(2×5+20)。每格两个框共享一套类别，没有预设宽高 Anchor，也没有现代三尺度检测头。</p>
+      <p>按 GT 中心确定网格，再在格内按当前 IoU 选择负责框；推理仍使用 NMS。其定位、召回与同格密集小目标限制，是理解 v2 的全卷积与先验框、v3 的三尺度预测的出发点。</p>
+      <p><a href="../../模型原理/YOLOv1/index.html">完整原理、坐标算例、损失及历史实验 →</a> · <a href="#compare-v1-v3">v1 / v3 对照</a>。初代的详细内容已集中到模型页，本页保持演进的主次。</p>
+      <details><summary>原有细项入口</summary><ul class="moved-links"><li id="v1-output"><a href="../../模型原理/YOLOv1/index.html#v1-output">网络与 7×7×30 输出</a></li><li id="v1-coordinate-example"><a href="../../模型原理/YOLOv1/index.html#v1-coordinate-example">具体坐标算例</a></li><li id="v1-assignment"><a href="../../模型原理/YOLOv1/index.html#v1-assignment">格内责任与样本分配</a></li><li id="v1-loss"><a href="../../模型原理/YOLOv1/index.html#v1-loss">损失与监督</a></li><li id="v1-training-recipe"><a href="../../模型原理/YOLOv1/index.html#v1-training-recipe">训练配方与代码口径</a></li><li id="v1-inference"><a href="../../模型原理/YOLOv1/index.html#v1-inference">分数与 NMS</a></li><li id="v1-evolution"><a href="../../模型原理/YOLOv1/index.html#v1-evolution">局限与 v2 / v3 衔接</a></li><li id="v1-results"><a href="../../模型原理/YOLOv1/index.html#v1-results">原论文速度和精度</a></li><li id="v1-tracks"><a href="../../模型原理/YOLOv1/index.html#v1-tracks">六条主线定位</a></li></ul></details>
+    </section>
+
+    <section id="anchor-priors" class="overview-section math-section" aria-labelledby="anchor-priors-title">
+      <p class="eyebrow">主线② · 先验框与预测表示</p><h2 id="anchor-priors-title">先验框提供宽高起点，<br>网络仍要根据图像预测目标。</h2>
+      <div class="system-paths"><div><p><span data-term="anchor">Anchor box</span> 是预设宽高的参考模板，随预测网格位置重复铺设。它帮助模型围绕常见形状学习调整；不是 GT、不是已经找到的目标，也不是先由图像产生的候选区域。</p><p>以 v3 的宽高表示为例：<code>bw=aw×exp(tw)</code>、<code>bh=ah×exp(th)</code>。若先验为 40×20，宽高调整量都为 ln2，得到的是 80×40；模板不是最终框大小的上限。</p></div><figure class="anchor-figure"><img src="../../通用机制/特征提取与多尺度融合/assets/anchors.svg" width="360" height="296" alt="同一预测位置放置不同宽高模板，网络回归调整后得到预测框；不代表三个已知目标" loading="lazy"><figcaption>同一位置的几种宽高模板。图为机制示意，不对应实际模型的先验数值。</figcaption></figure></div>
+      <p><strong>聚类决定参考形状，样本分配决定本次谁学哪个 GT。</strong>前者通常根据训练集框的宽高统计或搜索得到，后者在训练中按本批图像、增广后的标注与相应规则建立监督关系。选好 Anchor 不等于训练前已经完成全部分配。</p>
+      <details id="anchor-clustering"><summary>聚类怎样做，和后续分配有什么区别？</summary><div class="detail-content"><p>YOLOv2 对标注框宽高做聚类，以 <code>1−IoU</code> 衡量形状差异；比较宽高时按共同中心对齐，而非聚类目标在图像中的绝对位置。v3 将九种宽高模板分到三个预测层，再在各层网格上重复使用。</p><p>匹配模板、选择负责网格、忽略部分预测等，是具体版本的训练规则。不同版本可依据几何关系或当前预测质量分配，不能把一条规则推广到整个系列。</p></div></details>
+      <details id="anchor-tradeoffs"><summary>为什么后来又会选择 Anchor-free？</summary><div class="detail-content"><p>宽高先验引入了数量、长宽比、尺度分配等设计选择，也会增加预测数量。数据中形状分布变化后，模板可能不适配。Anchor-free 去掉这类预设宽高，简化部分设计，但仍需坐标参考、框解码和样本分配，也不自动消除重复预测。</p><p>初代的两个框预测器没有预设宽高，不能倒称为两个聚类 Anchor；现代 Anchor-free 也不等于回到初代。代码中的 anchor point 常指参考点，与有宽高的 anchor box 应区分。“不使用先验框”也不代表模型不再具有网格、中心约束等其他先验。</p></div></details>
+      <p class="math-source">原始依据：<a href="https://arxiv.org/html/1612.08242v1#S2" target="_blank" rel="noreferrer">YOLOv2 的 Anchor、聚类与位置表示</a> · <a href="https://arxiv.org/html/1804.02767#S2.SS1" target="_blank" rel="noreferrer">YOLOv3 的框预测</a>。继续看<a href="../03_样本分配/样本分配与监督机制.html">样本分配与监督机制</a>。</p>
+    </section>
+
+    <section id="compare" class="overview-section" aria-labelledby="compare-title">
+      <p class="eyebrow">把一个新模型放回五个环节</p><h2 id="compare-title">选两个版本，<br>看它们分别改了哪里。</h2>
+      <p>默认从已知的 YOLOv9 对照 YOLO26。学完 <a href="../../模型原理/YOLO11/index.html">YOLO11 专题</a>，可以直接看 <a href="#compare-v5-y11">v5 / 11</a>、<a href="#compare-v7-y11">v7 / 11</a> 或 <a href="#compare-v8-y11">v8 / 11</a>。也可以选 YOLOv1 与 v3，观察全连接网格如何走向全卷积多尺度预测；再对照 YOLOv10 与 YOLO26，或 YOLO11 与 YOLO26，观察免 NMS 训练和结构基础上的联系。选择顺序只表示左右对照，不表示谁由谁直接演化。</p>
+      <p class="fine-print">GT（Ground Truth）指真实标注；其余分配、损失和结构名词的职责可在下方“对照中的词分别指什么”中展开查看。</p>
+      <p class="fine-print">对照表把 YOLOv5 固定在 v6.1，便于复核代码。要辨认旧项目用的版本，请看<a href="../../模型原理/YOLOv5/index.html#rail">铁路项目时间线与结构线索</a>。</p>
+      <div class="select-row comparison-selectors"><label for="compare-left">左侧参照<select id="compare-left"><option value="v1">YOLOv1 · 原论文 VOC 配置</option><option value="v3">YOLOv3 · 原版</option><option value="v5">YOLOv5 · v6.1</option><option value="x">YOLOX · 常规模型</option><option value="v7">YOLOv7 · 原版 P5</option><option value="v8">YOLOv8 · 常规检测</option><option value="v9" selected>YOLOv9 · 原版 TAL 路径</option><option value="v10">YOLOv10 · 原版</option><option value="y11">YOLO11 · 常规检测</option><option value="y26">YOLO26 · 论文与指定实现</option></select></label><label for="compare-right">右侧参照<select id="compare-right"><option value="v1">YOLOv1 · 原论文 VOC 配置</option><option value="v3">YOLOv3 · 原版</option><option value="v5">YOLOv5 · v6.1</option><option value="x">YOLOX · 常规模型</option><option value="v7">YOLOv7 · 原版 P5</option><option value="v8">YOLOv8 · 常规检测</option><option value="v9">YOLOv9 · 原版 TAL 路径</option><option value="v10">YOLOv10 · 原版</option><option value="y11">YOLO11 · 常规检测</option><option value="y26" selected>YOLO26 · 论文与指定实现</option></select></label></div>
+      <div class="network-pair" aria-label="所选两版的检测网络结构">
+        <figure class="network-figure"><img id="left-network-img" src="../../通用机制/特征提取与多尺度融合/assets/network-v9.svg" width="360" height="374" loading="lazy" alt="图像经GELAN式主干进入主预测分支；图像与主干不同层的特征也进入训练辅助路径。部署时使用转换后的主分支，与v10的一对一去重不同。"><figcaption><strong id="left-network-name">YOLOv9-C</strong> <span id="left-network-caption">辅助预测改善训练的梯度信息；转为部署模型时保留主预测路径。这里的双路监督与 v10 的免 NMS 双头目的不同。</span> <a id="left-network-source" href="https://github.com/WongKinYiu/yolov9/blob/main/models/detect/yolov9-c.yaml" target="_blank" rel="noreferrer">原版 YOLOv9-C 配置</a></figcaption></figure>
+        <figure class="network-figure"><img id="right-network-img" src="../../通用机制/特征提取与多尺度融合/assets/network-26.svg" width="360" height="374" loading="lazy" alt="YOLO11式C3k2主干与深层SPPF和C2PSA，跨尺度融合供给一对多和一对一检测头。两头均直接预测边距；辅助损失逐渐减重，免 NMS 路径用一对一头。"><figcaption><strong id="right-network-name">YOLO26 · 常规检测</strong> <span id="right-network-caption">对比 v10 时，先看两头预测什么：v10 用离散边距分布，YOLO26 直接回归边距。渐进损失属于训练，不是新增推理层。</span> <a id="right-network-source" href="https://github.com/ultralytics/ultralytics/blob/v8.4.0/ultralytics/cfg/models/26/yolo26.yaml" target="_blank" rel="noreferrer">v8.4.0 配置</a></figcaption></figure>
+      </div>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="两版本检测设计对照，可横向滚动"><p class="scroll-hint">窄屏可左右滚动；第一列为相同的比较维度。</p><table class="comparison-table"><caption>概述常规水平框检测，具体规模和训练路径可能另有差异；不以表格差异推算性能提升</caption><thead><tr><th scope="col">环节</th><th scope="col" id="compare-left-title">YOLOv9</th><th scope="col" id="compare-right-title">YOLO26</th></tr></thead><tbody id="comparison-rows"><tr><th scope="row">结构与特征</th><td>GELAN 组织特征；PGI 关注训练时的梯度信息。</td><td>以 YOLO11 为结构基础，并有主干与融合部分的轻量调整。</td></tr><tr><th scope="row">预测与框表示</th><td>Anchor-free，采用分布式框回归。</td><td>Anchor-free，直接框回归，不再使用 DFL。</td></tr><tr><th scope="row">样本分配</th><td>原版所列路径使用 TAL。</td><td>双分支 TAL，并以 STAL 调整小目标的空间候选资格。</td></tr><tr><th scope="row">损失与优化</th><td>PGI 辅助训练与分类、定位监督；不等于优化器。</td><td>渐进组合分支损失，并使用 MuSGD 更新参数。</td></tr><tr><th scope="row">推理与去重</th><td>常规部署使用 NMS。</td><td>一对一可免 NMS，一对多配 NMS；比较前先核对实际部署路径。</td></tr></tbody></table></div>
+      <div class="comparison-notes" aria-live="polite" aria-atomic="true"><p id="comparison-summary">这是不同分支的横向对照，不是 v9 直接升级到 v26 的改造清单。</p><div class="comparison-reading"><div><h3 id="left-reading-title">YOLOv9 的核心定位</h3><p id="left-reading-note">结构与训练信息要分开理解：GELAN 负责网络组织，PGI 负责训练梯度信息。</p><p id="left-reading-source" class="fine-print"><a href="https://arxiv.org/abs/2402.13616" target="_blank" rel="noreferrer">原论文</a></p></div><div><h3 id="right-reading-title">YOLO26 的核心定位</h3><p id="right-reading-note">把结构基础、免 NMS 输出、监督改进和参数更新分别定位。</p><p id="right-reading-source" class="fine-print"><a href="../04_YOLO26/YOLO26原理与演进.html">YOLO26 专题</a></p></div></div></div>
+      <details id="comparison-terms"><summary>对照中的词分别指什么？</summary><div class="detail-content"><p><strong>Anchor：</strong>具有预设宽高的先验框。Anchor-free 通常不使用这类先验框，但仍可使用网格参考点；它不保证没有重复框。</p><p><strong>解耦头：</strong>让分类与定位使用各自的预测分支；它不改变需要多少预测层，也不自动实现一物一框。</p><p><strong>SimOTA / TAL：</strong>根据候选和预测质量选择监督对象的分配方法。前者用 Dynamic-k 估计本轮数量；后者的预设 Top-k 也会因预测改变而选中不同位置。</p><p><strong>DFL：</strong>分布焦点损失。相关检测头以离散分布表达框的各边距离，再解码为坐标；去掉 DFL 不等于去掉框回归损失。</p><p><strong>IoU / CIoU：</strong>前者是交并比，后者进一步考虑框几何关系，可用于定位监督。<strong>BCE</strong> 是二元交叉熵。<strong>PGI</strong> 是可编程梯度信息，<strong>GELAN</strong> 是广义高效层聚合网络。</p><p>本对照是机制摘要，不列出所有损失权重、训练技巧或规模变体。main 实现核对日期为 2026-11-03，复现时需固定代码版本。</p></div></details>
+      <noscript><p class="fine-print">禁用 JavaScript 时显示默认的 YOLOv9 / YOLO26 对照；可阅读上方初代原理、下方版本索引和专题。启用后可切换 9 个代表性版本，比较结果不运行真实模型。</p></noscript>
+    </section>
+
+    <section id="explorer" class="explorer" aria-labelledby="explorer-title">
+      <div class="explorer-top">
+        <div><p class="eyebrow">同一张图，两条路径</p><h2 id="explorer-title">推理得到结果；训练塑造预测。</h2></div>
+        <div class="mode-switch" role="group" aria-label="选择推理或训练路径">
+          <button id="infer-mode" type="button" aria-pressed="true">推理时</button>
+          <button id="train-mode" type="button" aria-pressed="false">训练时</button>
+        </div>
+      </div>
+      <p id="route-description" class="route-description"></p>
+      <nav id="steps" class="steps" aria-label="流程步骤"></nav>
+      <div class="workbench">
+        <figure class="visual">
+          <div class="figure-heading"><span id="visual-title"></span><span class="demo-label">示意 / 非模型实测</span></div>
+          <svg id="scene" viewBox="0 0 640 640" role="img" aria-labelledby="scene-title scene-desc"></svg>
+          <figcaption id="visual-caption"></figcaption>
+        </figure>
+        <article class="explanation" aria-live="polite" aria-atomic="true">
+          <p class="eyebrow" id="step-count"></p>
+          <h3 id="step-title"></h3>
+          <p id="step-core" class="step-core"></p>
+          <dl id="step-detail"></dl>
+          <p id="step-boundary" class="boundary"></p>
+        </article>
+      </div>
+      <div class="step-controls"><button id="previous" type="button">上一步</button><p id="step-progress"></p><button id="next" type="button" class="primary">下一步</button></div>
+      <div id="nms-lab" class="nms-lab" hidden>
+        <div class="lab-intro"><h3>在这组候选框上，实际执行筛选与 NMS</h3><p>框和分数是假设数据；<span data-term="iou">IoU</span> 计算、置信度过滤及贪心 NMS 是真实执行的。本例只有“螺丝”一个类别。</p></div>
+        <div class="sliders">
+          <div><label for="confidence">置信度阈值 <output id="confidence-value" for="confidence">0.35</output></label><input id="confidence" type="range" min="0.05" max="0.95" step="0.01" value="0.35"></div>
+          <div><label for="overlap">NMS 的 IoU 阈值 <output id="overlap-value" for="overlap">0.60</output></label><input id="overlap" type="range" min="0.05" max="0.95" step="0.01" value="0.60"></div>
+          <label class="check"><input id="use-nms" type="checkbox" checked>执行 NMS</label>
+        </div>
+        <p id="nms-summary" class="result-summary" role="status"></p>
+        <div class="table-scroll"><table><caption>五个代表性候选预测：不是模型的全部输出</caption><thead><tr><th>框</th><th>分数</th><th>来自哪层</th><th>相对 A 的 IoU</th><th>当前处理结果</th></tr></thead><tbody id="candidate-rows"></tbody></table></div>
+        <p class="fine-print">关闭 NMS 只演示这组旧式输出留下的重复框，不等于训练出了 NMS-free 检测器。NMS 通常不改坐标，也不会识别所有孤立误检。最高置信度并不保证定位最准确。</p>
+      </div>
+      <p class="training-link"><button id="other-route" type="button" class="text-button">看看训练怎样影响这些预测 →</button></p>
+      <noscript><p>交互图解需要启用 JavaScript。核心流程是：图像 → Backbone 提取特征 → Neck 融合特征 → Head 产生密集预测 → 解码 → 过滤与去重。训练还需要标签分配、损失计算和参数更新。</p></noscript>
+    </section>
+
+    <section class="causes" aria-labelledby="duplicates-title">
+      <p class="eyebrow">把前因与后果接起来</p>
+      <h2 id="duplicates-title">为什么多个预测，<br>会指向同一个目标？</h2>
+      <p>在这类密集检测器中，预测机会先铺在特征图上，再由网络判断哪些位置应该输出目标。因此，预测数量由输出结构决定，并不是先数出目标，再生成对应数量的框。</p>
+      <p>同一尺度的相邻位置可能预测到同一个目标，不同尺度也可能产生重叠预测。训练的一对多分配还会把多个预测指定为同一目标的正样本，给模型更丰富的监督。在这种目标下，高分预测不天然构成“一物一框”的集合，推理时通常还需要去重。图中 A、B 都来自 stride 8，C 才来自 stride 16。</p>
+      <p>因此，Anchor-free、单尺度和 NMS-free 是不同维度的选择。去掉先验框，或者减少预测尺度，都不能单独保证没有重复预测。</p>
+      <figure class="iou-figure"><img src="../../通用机制/特征提取与多尺度融合/assets/iou.svg" width="360" height="204" loading="lazy" alt="两个三格宽、两格高的矩形错开一格，重叠四格，总共覆盖八格"><figcaption><strong>两个预测框究竟重叠多少？</strong>交集是 4 格，并集是 8 格，IoU 就是 0.5。若同类贪心 NMS 按 IoU 大于 0.45 抑制，低分框会被去掉；阈值改为 0.60，这两个框都保留。这里不需要真实标注。</figcaption></figure>
+      <details class="count-explorer">
+        <summary>展开看：预测机会到底有多少？</summary>
+        <p>固定输入 640 × 640，使用步长 8、16、32 时，预测网格分别为 80 × 80、40 × 40、20 × 20。以下只比较输出数量，不模拟准确率变化。</p>
+        <div class="select-row"><label>预测层<select id="levels"><option value="three">三层：stride 8 / 16 / 32</option><option value="coarse">仅保留 stride 32</option></select></label><label>每个位置的预测数<select id="slots"><option value="1">1 个：YOLOX 式 Anchor-free</option><option value="3">3 个：常见三 Anchor 配置</option></select></label></div>
+        <p class="count-formula" id="count-formula"></p><p id="count-explanation"></p>
+        <p class="fine-print">这是两种结构的数量对比，不是在一个已训练模型上即时切换 Anchor。Anchor-free 仍有网格或参考点。“Anchor-free”通常指不使用预设宽高的 anchor box，不代表没有空间参考。</p>
+      </details>
+    </section>
+
+    <section id="versions" class="versions" aria-labelledby="versions-title">
+      <p class="eyebrow">先标位置，之后逐项展开</p>
+      <h2 id="versions-title">读新版本时，先问它改了哪一环。</h2>
+      <p>下面是设计位置索引，不是完整性能排名，也不表示后一个模型继承了前面所有设计。具体贡献要回到相同实验条件下的消融与速度、精度测试判断。</p>
+      <details><summary>初代、YOLOv3 / v5：从直接预测到常见的多尺度框架</summary><div class="detail-content">
+        <p><strong>初代 YOLO：</strong>整图卷积与全连接输出 7×7×30；每格两个框共享类别，按中心与当前 IoU 分配监督，推理仍使用 NMS。完整机制、局限及 v2 / v3 衔接见<a href="#yolov1">初代 YOLO 原理</a>，原始依据为<a href="https://arxiv.org/html/1506.02640v5#S2" target="_blank" rel="noreferrer">论文 §2</a>。</p>
+        <p><strong>YOLOv3：</strong>用 Anchor 参数化框，在三个尺度输出预测，并融合不同层级的特征。这有助于处理尺度差异，尤其改善小目标检测的条件；不是把小、中、大目标严格分配给三层。阅读 <a href="https://pjreddie.com/media/files/papers/YOLOv3.pdf" target="_blank" rel="noreferrer">§2.1、§2.3</a>。</p>
+        <p><strong>YOLOv5：</strong>在 Ultralytics 的实现分支中，围绕 CSP 主干、特征聚合、Anchor 检测头和训练、部署继续优化。不同发布版本配置不同；这里参考其 <a href="https://docs.ultralytics.com/yolov5/tutorials/architecture_description/" target="_blank" rel="noreferrer">v6.0 / v6.1 架构说明</a>，不能把 Focus 等模块视为所有 v5 的固定组成。<a href="../../模型原理/YOLOv5/index.html">经典 YOLOv5：检测原理与版本辨识 →</a></p>
+      </div></details>
+      <details><summary>YOLOX、v6、v8：预测表达、分配与执行效率的不同选择</summary><div class="detail-content">
+        <p><strong>YOLOX：</strong>Anchor-free 改变框的预测表达；解耦头让分类与定位有各自的预测分支；SimOTA 改变训练时的正样本分配。三个改动职责不同，不能把整体提升全部归给 Anchor-free。论文还做过端到端变体实验，本文基线指其常规部署模型。阅读 <a href="https://arxiv.org/html/2107.08430v2#S2" target="_blank" rel="noreferrer">§2.1 的各项消融</a>。</p>
+        <p><strong>YOLOv6：</strong>美团分支围绕工业部署优化结构、训练和执行效率；重参数化等设计需要结合具体版本说明。阅读 <a href="https://arxiv.org/abs/2209.02976" target="_blank" rel="noreferrer">2022 年技术报告</a>。</p>
+        <p><strong>YOLOv8：</strong>Ultralytics 分支采用 Anchor-free 的解耦检测头，但不等于复用 YOLOX 的所有预测表达与训练分配。阅读 <a href="https://docs.ultralytics.com/models/yolov8/" target="_blank" rel="noreferrer">官方概述</a>。<a href="../../模型原理/YOLOv8/index.html">进入 YOLOv8：从特征和参考点到检测框 →</a></p>
+      </div></details>
+      <details><summary>YOLOv9 / v10：梯度信息，与输出集合的去重需求</summary><div class="detail-content">
+        <p><strong>YOLOv9：</strong>PGI 主要关注训练时可用的梯度信息，GELAN 关注网络结构。它们与“怎样避免重复输出”不是同一个问题。阅读 <a href="https://arxiv.org/abs/2402.13616" target="_blank" rel="noreferrer">原论文摘要及方法</a>。</p>
+        <p><strong>YOLOv10：</strong>一致双重分配用一对多分支辅助训练，同时训练面向推理的一对一分支，从而支持不依赖 NMS 的推理。它还对结构效率做了另外的优化；贡献不只有“删掉 NMS”。阅读 <a href="https://arxiv.org/html/2405.14458v2#S3.SS1" target="_blank" rel="noreferrer">§3.1</a> 与 §3.2。</p>
+      </div></details>
+      <details id="yolo11-bridge"><summary>YOLO11 / YOLO26：结构基础相近，训练与部署路径继续变化</summary><div class="detail-content"><p><strong>YOLO11：</strong>继续使用多尺度特征和 Anchor-free 检测，结构中采用 C3k2 卷积特征块与 C2PSA 部分特征注意力块。常规检测仍使用分布式框回归、TAL 与 NMS，不能按数字顺序认定其已经免 NMS。<a href="../../模型原理/YOLO11/index.html">进入 YOLO11：先看完整检测流程 →</a>依据：<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/models/11/yolo11.yaml" target="_blank" rel="noreferrer">官方模型配置</a>、<a href="https://docs.ultralytics.com/models/yolo11/" target="_blank" rel="noreferrer">官方资料</a>。</p><p><strong>YOLO26：</strong>以 YOLO11 为结构基础，不代表逐层完全相同；结合双分支免 NMS 路径，配合渐进损失、STAL 与 MuSGD，并采用不含 DFL 的框回归。它既延续旧思路，也替换旧设计。<a href="../04_YOLO26/YOLO26原理与演进.html">查看已展开的 YOLO26 专题</a>；依据：<a href="https://arxiv.org/html/2606.03748v1#S3" target="_blank" rel="noreferrer">论文 §3</a>、<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/models/26/yolo26.yaml" target="_blank" rel="noreferrer">官方模型配置</a>。</p></div></details>
+      <details id="other-branches"><summary>补充定位：v2、v4、v7，以及 v12 / v13 的其他研究方向</summary><div class="detail-content"><p><strong>YOLOv2：</strong>在早期统一检测基础上引入维度聚类的先验框等改进；与 YOLO9000 的检测、分类联合训练需区分。<a href="https://arxiv.org/abs/1612.08242" target="_blank" rel="noreferrer">原论文</a>。</p><p><strong>YOLOv4：</strong>系统组合结构与训练策略，在速度、精度和训练条件之间做取舍；不是靠一个新模块解释全部收益。<a href="https://arxiv.org/abs/2004.10934" target="_blank" rel="noreferrer">原论文</a>。</p><p><strong>YOLOv7：</strong>原版 P5 配置聚合多条特征路径；部分训练分支可在部署前合并。三尺度检测仍从先验框出发，推理仍用 NMS。<a href="https://arxiv.org/abs/2207.02696" target="_blank" rel="noreferrer">原论文</a> · <a href="../../模型原理/YOLOv7/index.html">YOLOv7：特征聚合与部署重参数化 →</a></p><p><strong>YOLOv12：</strong>注意力主导的实时检测结构，重点是怎样使用注意力而保持执行效率。<a href="https://arxiv.org/abs/2502.12524" target="_blank" rel="noreferrer">原论文</a> · <a href="https://arxiv.org/abs/2502.12524">英文原文</a>。</p><p><strong>YOLOv13：</strong>通过超图增强跨位置、跨尺度的高阶关联与信息流。<a href="https://arxiv.org/abs/2506.17733v2" target="_blank" rel="noreferrer">原论文</a> · <a href="https://arxiv.org/abs/2506.17733v2">英文原文</a>。v12、v13 在此作为分支方向索引，不将论文宣称的提升当作所有部署场景的结论，也不把它们列为学习 YOLO26 的强制前置。</p></div></details>
+    </section>
+
+    <details class="overview-appendix"><summary>损失函数：展开监督与推导</summary>
+    <section id="losses" class="overview-section math-section" aria-labelledby="losses-title">
+      <p class="eyebrow">监督约束什么，先看输出代表什么</p><h2 id="losses-title">损失衡量预测偏差，<br>不同输出需要不同监督。</h2>
+      <p>目标检测需要同时判断类别与位置。有些检测头还单独预测目标置信度。因此，“YOLO 使用什么损失”通常要拆成多个分量，再结合样本分配、权重和计算范围理解。</p>
+      <div class="system-paths function-roles"><div><h3>激活函数：前向怎样变换数值</h3><p>例如把卷积输出 z 变成 SiLU(z)，或把分类原始分数变成 Sigmoid 概率。它同时影响经过该位置的梯度。</p></div><div><h3>损失函数：预测与目标差在哪里</h3><p>例如用 BCE 约束分类分数，用 CIoU 约束定位。损失产生梯度；优化器再据梯度与状态更新参数。</p></div></div>
+      <p class="fine-print">以下限定常规水平框检测，不混入分割的 Dice、关键点或旋转框专属损失。交互是独立数学计算，不运行模型训练，也不据曲线形状判断某一版本精度。</p>
+      <nav class="math-links" aria-label="损失函数小节"><a href="#classification-loss">分类与置信度</a><a href="#box-loss">框回归</a><a href="#dfl-foundation">DFL</a><a href="#loss-versions">版本对应</a><a href="#activations">激活与输出变换</a></nav>
+
+      <h3 id="classification-loss">分类与目标置信度：为什么常用 BCE？</h3>
+      <p>一个类别通道可以看成一个“属于该类吗”的判断。二元交叉熵（BCE）约束预测分数与目标分数：属于该类时通常希望分数提高，不属于时希望降低。若目标分数还包含定位质量，正样本目标也可能是 0 到 1 之间的软值，而非一律为 1。</p>
+      <div class="math-formula"><span>p = σ(z) = 1 / (1 + e<sup>−z</sup>)</span><span>L<sub>BCE</sub> = −[t ln p + (1 − t) ln(1 − p)]</span><span>∂L<sub>BCE</sub> / ∂z = p − t</span><small>z 是激活前的分类原始分数（logit），p 是 Sigmoid 后的分数，t 是目标值；ln 为自然对数。导数限定单个未加权、未归约的 BCE 分量，不包含正样本权重、Focal 调制或其他损失。</small></div>
+      <p><code>BCEWithLogitsLoss</code> 直接接收 z，在内部稳定地计算 Sigmoid 与 BCE 的组合；使用它时不要再把 <code>sigmoid(z)</code> 当作 logits 输入。若接口是 <code>BCELoss</code> 或概率版 BCE，则应提供概率。要核对接口，而不是记成“任何 BCE 前都不能做 Sigmoid”。</p>
+      <div class="math-demo" id="binary-loss-demo"><div class="math-demo-head"><h3>同一个 Sigmoid，配合不同损失会怎样？</h3><p>只看一个类别通道。改变原始分数 z 与目标 t，比较损失和它们对 z 的导数。概率平方误差仅作数学对照，不是早期 YOLO 完整损失的复现。</p></div><div class="math-demo-body"><div class="select-row"><div><div class="math-control-label"><label for="binary-logit">分类原始分数 z</label><output id="binary-logit-value" for="binary-logit">−4.0</output></div><input id="binary-logit" type="range" min="-60" max="60" step="1" value="-40"><div class="math-range-ends"><span>−6</span><span>+6</span></div></div><label for="binary-target">目标分数 t<select id="binary-target"><option value="1" selected>1：该类别的正目标</option><option value="0">0：该类别的负目标</option><option value="0.7">0.7：示例质量软目标</option></select></label></div><p class="math-probability">Sigmoid 后的 p = <output id="binary-probability">0.017986</output></p><div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="二元损失及对原始分数的导数，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看损失与导数。</p><table class="binary-table"><caption>相同 z、p、t 下的标量比较；损失数值大小本身不表示训练效果</caption><thead><tr><th scope="col">损失</th><th scope="col">当前数值</th><th scope="col">对 z 的导数</th></tr></thead><tbody><tr><th scope="row">BCE</th><td id="binary-bce">4.018150</td><td id="binary-bce-gradient">−0.982014</td></tr><tr><th scope="row">½(p − t)²</th><td id="binary-mse">0.482176</td><td id="binary-mse-gradient">−0.017345</td></tr></tbody></table></div><div class="math-readout" role="status"><p id="binary-explanation">目标为 1，但当前分数很低。BCE 对 z 的导数接近 −1；概率平方误差还多乘一个 p(1 − p)，此时导数更小。</p><p>导数为负时，对 z 的负梯度方向是增大；为正时是减小。真实网络还需通过链式求导得到各权重的梯度，再由优化器更新，不能把 z 直接当成全网络的参数。</p></div></div><div class="math-demo-foot">平方误差的导数为 (p − t)p(1 − p)。Sigmoid 自身在两端导数很小，但组合后的 BCE 导数是 p − t；不能只看一个激活函数的导数，就判断整条损失链是否梯度消失。</div></div>
+      <p class="math-source">依据：<a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.BCEWithLogitsLoss.html" target="_blank" rel="noreferrer">PyTorch BCEWithLogitsLoss</a>。公式与演示是单通道说明；实际损失还可能带有掩码、目标质量权重及归一化。</p>
+      <details id="objectness-scope"><summary>没有独立 objectness，背景还会被监督吗？</summary><div class="detail-content"><p>YOLOv3、v5、YOLOX 等有独立目标置信度（objectness）输出，用于区分预测是否对应目标；其目标值可能采用二值标签或混入定位质量，具体版本不同。</p><p>在 YOLOX 常规实现中，定位和类别损失主要在匹配正样本上计算，objectness 同时监督目标与背景。其正样本类别目标还乘以匹配 IoU，不一定就是 1。</p><p>YOLOv8 等所列实现不设这种独立 objectness 通道，但背景位置的类别目标可以全部为 0，仍由类别损失压低分数。去掉一个通道不等于去掉背景监督，也不能把旧版 <code>objectness × 类别分数</code> 原样用于所有新模型。</p><p class="math-source"><a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">YOLOX 正样本掩码与目标</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py" target="_blank" rel="noreferrer">Ultralytics 分类目标与 BCE</a>。</p></div></details>
+      <details id="classification-reweighting"><summary>Focal、Varifocal、QFL 又各自针对什么？</summary><div class="detail-content"><p><strong>Focal Loss：</strong>密集检测里容易分类的背景很多，累计损失可能压过难样本。Focal 给容易样本较低权重。对硬目标 t∈{0,1}，常见形式为 <code>−α_t(1 − p_t)^γ ln p_t</code>；p_t 是对正确类别的分数，α_t 平衡类别，γ 控制调制强度。它不是框几何损失。</p><p><strong>Varifocal Loss（VFL）：</strong>希望分数既反映类别，又有助于按定位质量排序，因此用质量软目标，并对正、负样本采用不同加权。YOLOv6 0.3.0 的所列损失路径使用 VFL，不能据此认定所有 YOLO 默认都用它。</p><p><strong>Quality Focal Loss（QFL）：</strong>广义焦点损失研究中的质量分类监督，允许连续质量目标，并按预测与目标的差异调制。它与同篇研究提出的 DFL 职责不同：QFL 面向质量分类，DFL 面向框边距离分布。</p><p>源码里定义了某个损失类，不代表当前模型真的调用它。以本次核对的 Ultralytics 常规检测路径为例，类别项仍调用 BCE；是否启用其他损失需检查训练入口和配置。</p><p class="math-source"><a href="https://arxiv.org/abs/1708.02002" target="_blank" rel="noreferrer">Focal Loss 原论文</a> · <a href="https://arxiv.org/abs/2008.13367" target="_blank" rel="noreferrer">VarifocalNet 原论文</a> · <a href="https://arxiv.org/abs/2006.04388" target="_blank" rel="noreferrer">Generalized Focal Loss 原论文</a>。</p></div></details>
+
+      <h3 id="box-loss">框回归：从坐标误差，转向框的几何关系</h3>
+      <p>坐标差多少与检测框重叠得好不好，不是完全一致的问题。L1、平方误差直接约束坐标或框参数；IoU 类损失则从预测框与真实框的整体几何关系出发。即便都叫“定位损失”，输入也可能是中心宽高、边距离或解码后的角点框，不能混用公式。</p>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="框回归损失的原问题与方法，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看公式与问题背景。</p><table class="loss-family-table"><caption>P 为预测框，G 为真实框，IoU = 交集面积 / 并集面积；下列是核心形式，未含样本权重</caption><thead><tr><th scope="col">方法</th><th scope="col">核心形式</th><th scope="col">解决的问题与边界</th></tr></thead><tbody>
+        <tr><th scope="row">L1 / 平方误差</th><td>Σ|u − u*| / Σ(u − u*)²</td><td>直接拟合参数；平方项更强调大误差。u 必须先明确为哪种参数、何种单位；它不天然等于 IoU 指标。</td></tr>
+        <tr><th scope="row">IoU Loss</th><td>1 − IoU；也有 1 − IoU² 等实现</td><td>直接反映重叠程度；两框完全分离时，普通 IoU 的重叠项在一片区域内不能提供靠近方向。</td></tr>
+        <tr><th scope="row">GIoU Loss</th><td>1 − IoU + (|C| − |P∪G|) / |C|</td><td>C 是包住两框的最小轴对齐矩形，引入未被占用的包围区域，在无重叠时也能提供额外约束；并非任何布局下都解决全部回归困难。</td></tr>
+        <tr><th scope="row">DIoU Loss</th><td>1 − IoU + ρ²(b,b*) / c²</td><td>额外约束两框中心距离；b、b* 为中心，ρ 为欧氏距离，c 为最小包围框的对角线长度。</td></tr>
+        <tr><th scope="row">CIoU Loss</th><td>L_DIoU + αv</td><td>在重叠与中心距离之外加入宽高比差异；v 描述比例差异，α 为自适应系数。它不是四个坐标分别计算 BCE。</td></tr>
+      </tbody></table></div>
+      <p>这些方法是不同的几何约束，不是严格的“越新一定越好”。实际收益还受框表示、目标尺寸、分配、训练预算与实现影响；用 IoU 排序、用 IoU 定义损失、用 IoU 做 NMS，是三个不同位置的用途。</p>
+      <details id="ciou-formula"><summary>CIoU 的比例项具体怎样写？</summary><div class="detail-content"><div class="math-formula"><span>v = (4 / π²)[arctan(w* / h*) − arctan(w / h)]²</span><span>α = v / (1 − IoU + v + ε)</span><small>w、h 为预测宽高，w*、h* 为真实宽高；π 为圆周率，ε 是数值稳定小量。代码可能对 α 停止梯度或采用不同稳定处理，不能仅凭核心公式认定逐行实现相同。</small></div></div></details>
+      <p class="math-source"><a href="https://arxiv.org/abs/1902.09630" target="_blank" rel="noreferrer">GIoU 原论文</a> · <a href="https://arxiv.org/abs/1911.08287" target="_blank" rel="noreferrer">DIoU / CIoU 原论文</a> · <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/losses.py" target="_blank" rel="noreferrer">YOLOX 默认 1 − IoU²</a>。</p>
+
+      <details id="dfl-foundation"><summary>DFL：为什么定位也会用到 Softmax 和交叉熵？</summary><div class="detail-content"><p>直接回归时，一条框边距离可以只输出一个数。分布式表示则先在若干离散位置上预测分数，经过 Softmax 形成分布，再取期望得到连续距离。这里选择的是“边距离的离散位置”，不是目标类别。</p><div class="math-formula"><span>p_k = exp(z_k) / Σ_j exp(z_j)</span><span>d̂ = Σ_k k · p_k</span><small>k 为距离区间的离散索引，z_k 为对应原始分数，p_k 为其概率，d̂ 为预测距离。常见实现按每条边分别归一化，再结合参考点与步长解码为图像坐标。</small></div><p>例如真实边距离 d = 3.7（特征网格单位），相邻索引为 3 和 4。DFL 使用权重 0.3、0.7 监督这两个位置：</p><div class="math-formula"><span>L_DFL = −0.3 ln p₃ − 0.7 ln p₄</span><span>若概率仅集中在两处：0.3 × 3 + 0.7 × 4 = 3.7</span><small>这是一个固定的说明例子。实际 Softmax 仍覆盖全部距离区间，不是只在两处归一化；所有区间分数都可通过归一化影响梯度。连续距离经插值监督，不要求只预测整数。</small></div><p>IoU 类损失检查解码后的整个框是否贴合，DFL 约束框边的分布，因此可以同时使用。DFL 虽然名字带 Focal，也不能直接按原始 Focal 的难易样本调制来理解。</p><p>YOLO26 不再采用该离散分布式回归路径，移除 DFL 并保留 CIoU 与归一化边距离 L1 监督；它没有取消定位学习。检测头中 DFL 积分模块与训练里的 DFL 损失也要区分：前者负责从分布解码，后者提供监督。</p><p class="math-source"><a href="https://arxiv.org/abs/2006.04388" target="_blank" rel="noreferrer">DFL 原始研究</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/block.py#L57-L76" target="_blank" rel="noreferrer">DFL 积分解码</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py#L87-L149" target="_blank" rel="noreferrer">DFLoss 与 BboxLoss</a> · <a href="https://arxiv.org/html/2606.03748v1#S3.SS2.SSS2" target="_blank" rel="noreferrer">YOLO26 DFL 移除</a>。</p></div></details>
+
+      <p class="fine-print">一个形状例子：每条边使用 16 个距离区间时，每个预测位置先输出 4×16 = 64 个定位分数，按每条边的 16 个数分别归一化，再解码为 4 个连续距离；类别分数另计。这个例子不含独立 objectness，不能将原始输出直接看成 4 个坐标。</p>
+      <h3 id="loss-versions">把常见损失放回具体版本</h3>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="YOLO 系列损失函数对应，可横向滚动"><p class="scroll-hint">窄屏可左右滚动；表中按原版或指定版本限定口径。</p><table class="loss-version-table"><caption>代表性检测路径的核心分量；省略具体权重、辅助分支和蒸馏项，不作为完整训练配方</caption><thead><tr><th scope="col">版本 / 路径</th><th scope="col">类别与目标置信度</th><th scope="col">定位监督</th><th scope="col">需要区分</th></tr></thead><tbody>
+        <tr><th scope="row"><a href="https://arxiv.org/html/1506.02640v5#S2.SS2" target="_blank" rel="noreferrer">初代 YOLO</a></th><td>类别、置信度采用平方误差式监督。</td><td>坐标误差，宽高采用平方根形式比较。</td><td>分类按网格组织，不能套入所有后续检测头的输出形状。</td></tr>
+        <tr><th scope="row"><a href="https://pjreddie.com/media/files/papers/YOLOv3.pdf" target="_blank" rel="noreferrer">YOLOv3 原版</a></th><td>类别独立 logistic + BCE，objectness 为 logistic 监督。</td><td>原论文采用框参数的平方误差。</td><td>不要将后来的 CIoU 或 DFL 反写成 v3 原版默认。</td></tr>
+        <tr><th scope="row">v4 / v5 v6.1 / v7 常规路径</th><td>类别与 objectness 的二元监督；v5、v7 使用 BCEWithLogits。</td><td>所列实现采用 CIoU。</td><td>正样本、质量目标及权重仍有差异，不代表逐项公式相同。</td></tr>
+        <tr><th scope="row"><a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">YOLOX</a></th><td>类别与 objectness 均用 BCE；类别正目标可带匹配 IoU。</td><td>默认 1 − IoU²；训练配方可加框参数 L1。</td><td>类别和定位主要看正样本，objectness 也监督背景。</td></tr>
+        <tr><th scope="row"><a href="https://github.com/meituan/YOLOv6/blob/0.3.0/yolov6/models/losses/loss.py" target="_blank" rel="noreferrer">YOLOv6 0.3.0 所列路径</a></th><td>Varifocal 质量分类监督。</td><td>IoU 类损失；是否启用 DFL 由配置控制。</td><td>此 VFL 接收概率；模型规模、版本及训练入口需核对。</td></tr>
+        <tr><th scope="row">v8 / v9 / v10 / YOLO11 所列路径</th><td>类别 BCE，正目标可携带质量；无 YOLOX 式独立 objectness。</td><td>CIoU + DFL。</td><td>辅助训练与分支组合不同，不能因核心项相同就视为同一训练方案。</td></tr>
+        <tr><th scope="row"><a href="../04_YOLO26/YOLO26原理与演进.html">YOLO26</a></th><td>类别 BCE；两条分支的损失再按渐进权重组合。</td><td>CIoU + 归一化边距离 L1，不用 DFL。</td><td>配置字段名 dfl 仍可保留兼容含义，非零值不证明还启用 DFL。</td></tr>
+      </tbody></table></div>
+      <p>总损失通常是若干分量的加权组合，但损失名称相同还不够：需要确认作用于哪些预测、目标值如何生成、是否带质量权重，以及怎样归一化。<a href="../04_YOLO26/YOLO26原理与演进.html#progressive-loss">渐进损失</a>改变分支组合权重；<a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html">MuSGD</a>负责参数更新，都不应与某个单项框损失混为一谈。</p>
+      <p class="math-source">表格实现依据：<a href="https://github.com/AlexeyAB/darknet/blob/master/cfg/yolov4.cfg" target="_blank" rel="noreferrer">v4</a> · <a href="https://github.com/ultralytics/yolov5/blob/v6.1/utils/loss.py" target="_blank" rel="noreferrer">v5 v6.1</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/utils/loss.py" target="_blank" rel="noreferrer">v7</a> · <a href="https://github.com/WongKinYiu/yolov9/blob/main/utils/loss_tal_dual.py" target="_blank" rel="noreferrer">v9</a> · <a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/loss.py" target="_blank" rel="noreferrer">v10</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py" target="_blank" rel="noreferrer">v8 / YOLO11 / YOLO26 的指定实现</a>。新增内容核对：2026-11-04；main 会变化。</p>
+    </section>
+    </details>
+
+    <details class="overview-appendix"><summary>激活函数：展开曲线与版本对应</summary>
+    <section id="activations" class="overview-section math-section" aria-labelledby="activations-title">
+      <p class="eyebrow">同叫激活，使用位置和职责仍不同</p><h2 id="activations-title">内部激活塑造表达，<br>输出变换服从预测含义。</h2>
+      <p>卷积或全连接首先形成加权响应 z。如果只堆叠仿射变换，多层仍可合并成一个仿射变换；激活 a = φ(z) 为这些层引入非线性。反向传播时，φ 的导数也参与链式求导，因此它既影响前向表达，也影响梯度传播。这不意味着池化、注意力等其他运算没有自己的非线性。</p>
+      <p>隐藏特征不要求落在 0 到 1；分类分数、框参数和距离分布却有不同的表示要求。因此，“这个模型用 SiLU”通常指许多内部特征块，不表示最后的类别、框和所有层都使用 SiLU。</p>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="常见激活函数的公式与取舍，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看公式与用途。</p><table class="activation-table"><caption>σ 是 Sigmoid，z 为选定位置的激活输入；这里只比较函数机制，不作模型精度排名</caption><thead><tr><th scope="col">函数</th><th scope="col">形式</th><th scope="col">使用理由与限制</th></tr></thead><tbody>
+        <tr><th scope="row">ReLU</th><td>max(0,z)</td><td>计算简单，负区间输出和局部导数为 0；某些单元可能长期收不到有效梯度。不能据此认定所有负响应都无价值。</td></tr>
+        <tr><th scope="row">Leaky ReLU</th><td>z&gt;0 时为 z，否则为 az</td><td>负区间保留小斜率；早期 YOLO 常用 a = 0.1。本页演示也取 0.1，它不是所有库的默认值。</td></tr>
+        <tr><th scope="row">SiLU / Swish（β=1）</th><td>zσ(z)</td><td>平滑、自门控，保留部分负响应；β=1 的 Swish 与 SiLU 同形。仍有趋近饱和的区域，不能说处处避免梯度消失。</td></tr>
+        <tr><th scope="row">Mish</th><td>z tanh(ln(1+e<sup>z</sup>))</td><td>平滑且保留部分负响应，YOLOv4 主干中使用。包含更多函数运算，实际耗时仍取决于算子融合与硬件。</td></tr>
+        <tr><th scope="row">Sigmoid</th><td>σ(z) = 1/(1+e<sup>−z</sup>)</td><td>映射到 0 到 1，适合独立分数。两端导数很小；最终梯度还必须结合损失一起分析。</td></tr>
+        <tr><th scope="row">Softmax</th><td>p_i = e<sup>z_i</sup> / Σ_j e<sup>z_j</sup></td><td>在指定维度归一化，使和为 1。它作用于一组分数，不是独立地对每个数做 Sigmoid；DFL 用它形成每条边的距离分布。</td></tr>
+      </tbody></table></div>
+      <div class="math-demo" id="activation-demo"><div class="math-demo-head"><h3>看一个数经过激活后怎样变化</h3><p>切换函数并移动输入，观察输出与选点处的导数。纵轴随所选函数调整；曲线不代表模型的训练或检测效果。Softmax 需要一组输入，另见下方输出变换对照。</p></div><div class="math-demo-body"><div class="select-row"><label for="activation-kind">激活 / 参照函数<select id="activation-kind"><option value="relu">ReLU</option><option value="leaky">Leaky ReLU · a=0.1</option><option value="silu" selected>SiLU</option><option value="mish">Mish</option><option value="sigmoid">Sigmoid</option><option value="identity">Identity · 不作非线性变换</option></select></label><div><div class="math-control-label"><label for="activation-input">输入 z</label><output id="activation-input-value" for="activation-input">−1.0</output></div><input id="activation-input" type="range" min="-50" max="50" step="1" value="-10"><div class="math-range-ends"><span>−5</span><span>+5</span></div></div></div><figure class="activation-figure"><svg id="activation-plot" viewBox="0 0 600 280" role="img" aria-labelledby="activation-plot-title activation-plot-desc"><title id="activation-plot-title">SiLU 激活函数</title><desc id="activation-plot-desc">输入负1时输出约负0.268941，导数约0.072329；启用 JavaScript 后显示曲线。</desc></svg><figcaption>横轴为输入 z，纵轴为输出 φ(z)；圆点为当前输入对应的函数值。</figcaption></figure><div class="math-readout" role="status"><p id="activation-result">SiLU：φ(−1.0) = −0.268941；φ′(−1.0) = 0.072329。</p><p id="activation-note">SiLU 的输出不要求非负或处于 0 到 1；部分负区间的导数还可以为负。</p></div></div><div class="math-demo-foot">ReLU 与 Leaky ReLU 在 0 处不可导，页面会标出常见自动微分约定，而不把它写成唯一数学导数。激活输出为负，不等于损失为负，也不等于参数一定向负方向更新。</div></div>
+      <p class="math-source">函数依据：PyTorch <a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.ReLU.html" target="_blank" rel="noreferrer">ReLU</a>、<a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.LeakyReLU.html" target="_blank" rel="noreferrer">LeakyReLU</a>、<a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.SiLU.html" target="_blank" rel="noreferrer">SiLU</a>、<a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.Mish.html" target="_blank" rel="noreferrer">Mish</a>、<a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.Sigmoid.html" target="_blank" rel="noreferrer">Sigmoid</a>、<a href="https://docs.pytorch.org/docs/2.15/generated/torch.nn.Softmax.html" target="_blank" rel="noreferrer">Softmax</a>。文档版本不代表本机已安装版本。</p>
+
+      <details id="activation-versions"><summary>各版本内部主要用什么？</summary><div class="detail-content"><p><strong>初代与 YOLOv3：</strong>常见隐藏层使用 Leaky ReLU；初代论文明确最后一层为线性输出。YOLOv3 的最后预测卷积也可为 linear，随后检测逻辑再执行 Sigmoid、指数等变换。</p><p><strong>YOLOv4：</strong>所列配置主干使用 Mish，融合和预测前的多处卷积仍使用 Leaky ReLU，最终预测卷积为 linear。因此“v4 使用 Mish”不是全网络所有位置都用 Mish。</p><p><strong>YOLOv5 v6.1、YOLOX、v7、v8、v9、v10、YOLO11、YOLO26：</strong>所列常规卷积块多以 SiLU 为默认。最后的输出卷积、部分线性分支或注意力内部仍可使用其他变换；SiLU 不能作为所有模块的统一标签。</p><p><strong>YOLOv6：</strong>0.3.0 的层实现中同时存在 ReLU 的 SimConv、重参数化块，以及 SiLU 的 Conv 等结构，实际组合需看模型配置。不能仅凭版本名唯一决定激活函数。</p><p class="math-source">原始实现：<a href="https://github.com/pjreddie/darknet/blob/master/cfg/yolov3.cfg" target="_blank" rel="noreferrer">v3 配置</a> · <a href="https://github.com/AlexeyAB/darknet/blob/master/cfg/yolov4.cfg" target="_blank" rel="noreferrer">v4 配置</a> · <a href="https://github.com/ultralytics/yolov5/blob/v6.1/models/common.py" target="_blank" rel="noreferrer">v5 Conv</a> · <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">YOLOX</a> · <a href="https://github.com/meituan/YOLOv6/blob/0.3.0/yolov6/layers/common.py" target="_blank" rel="noreferrer">v6 0.3.0</a> · <a href="https://github.com/WongKinYiu/yolov7/blob/main/models/common.py" target="_blank" rel="noreferrer">v7</a> · <a href="https://github.com/WongKinYiu/yolov9/blob/main/models/common.py" target="_blank" rel="noreferrer">v9</a> · <a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/nn/modules/conv.py" target="_blank" rel="noreferrer">v10</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/conv.py" target="_blank" rel="noreferrer">Ultralytics Conv</a>。</p></div></details>
+      <p class="fine-print">类别输出也有版本变化：<a href="https://github.com/pjreddie/darknet/blob/master/cfg/yolov2.cfg" target="_blank" rel="noreferrer">YOLOv2 原版 region 头配置</a>使用类别 Softmax，而 YOLOv3 改为独立 logistic 分类。讨论激活时要同时指出版本、模块和输出含义。</p>
+      <h3 id="output-transforms">检测头的输出，不统一套一个激活</h3>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="检测输出的激活与解码对应，可横向滚动"><p class="scroll-hint">窄屏可左右滚动查看各类输出的用途。</p><table class="output-transform-table"><caption>激活、表示变换和坐标解码需要连在一起理解；限定本页所列检测路径</caption><thead><tr><th scope="col">输出</th><th scope="col">常见变换</th><th scope="col">不能混用的地方</th></tr></thead><tbody>
+        <tr><th scope="row">类别分数</th><td>v3 及许多后续版本逐类别 Sigmoid；训练常直接向 BCEWithLogits 提供 logits。</td><td>分数不要求在类别间相加为 1。独立输出不代表实际数据标签一定是多标签，也不保证概率已校准。</td></tr>
+        <tr><th scope="row">objectness</th><td>存在此通道时通常采用 Sigmoid；训练目标与损失范围按版本定义。</td><td>v8 等没有独立通道，不能凭习惯再乘一个不存在的分数。</td></tr>
+        <tr><th scope="row">中心 / 宽高 / 边距离</th><td>v3 中心偏移用 Sigmoid、宽高用指数配合 Anchor；YOLOX 中心可直接加网格偏移、宽高取指数。</td><td>它们属于不同参数化。v5 又有修正 Sigmoid 表达，不能把四个坐标都统一限制在 0 到 1。</td></tr>
+        <tr><th scope="row">DFL 距离分布</th><td>每条边在距离区间维度做 Softmax，再取期望、结合步长解码。</td><td>不是在四条边之间归一化，也不是类别 Softmax。YOLO26 不再使用该分布路径。</td></tr>
+      </tbody></table></div>
+      <p class="boundary">激活函数不是损失函数；Softmax 不是交叉熵；SiLU 中用到 Sigmoid，不表示其输出也是概率。更换内部激活不能自动替代标签分配、损失设计或免 NMS 训练。</p>
+      <p class="math-source">输出依据：<a href="https://pjreddie.com/media/files/papers/YOLOv3.pdf" target="_blank" rel="noreferrer">YOLOv3 §2.1—2.2</a> · <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">YOLOX 解码</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/block.py#L57-L76" target="_blank" rel="noreferrer">DFL 解码</a>。公式、数据与交互均为机制说明，核对日期：2026-11-04。</p>
+      <noscript><p class="fine-print">正文、公式与版本表不依赖 JavaScript。默认数值示例：z = −4、t = 1 时，p≈0.017986，BCE≈4.018150，∂L/∂z≈−0.982014。激活默认示例为 SiLU(−1)≈−0.268941，导数≈0.072329；启用 JavaScript 可查看曲线与切换数值。</p></noscript>
+    </section>
+    </details>
+
+    <section id="connections" class="overview-section" aria-labelledby="connections-title"><p class="eyebrow">从问题进入专题</p><h2 id="connections-title">先定位改动，<br>再进入对应机制。</h2><ol class="topic-links"><li><strong>不清楚输出怎样形成：</strong>使用本页<a href="#explorer">训练与推理图解</a>，先把特征、预测张量、解码和结果筛选接起来。</li><li><strong>不清楚谁与标签计算损失：</strong>阅读<a href="../03_样本分配/样本分配与监督机制.html">样本分配与监督机制</a>；再看<a href="../05_SimOTA与TAL/SimOTA与TAL样本分配.html">SimOTA 与 TAL 的候选、排序与数量</a>。</li><li><strong>不清楚输出怎样被约束：</strong>查看本页<a href="#losses">损失函数</a>与<a href="#activations">激活函数</a>，把目标、表示、变换和梯度接起来。</li><li><strong>不清楚怎样训练出免 NMS 输出：</strong>进入<a href="../02_YOLOv10/YOLOv10原理与演进.html">YOLOv10 的一致双重分配</a>。它是理解 YOLO26 双分支安排的重要参照。</li><li><strong>不清楚 YOLO26 继续解决了什么：</strong>分别看<a href="../04_YOLO26/YOLO26原理与演进.html#progressive-loss">渐进损失</a>、<a href="../04_YOLO26/YOLO26原理与演进.html#stal">STAL</a>、<a href="../04_YOLO26/YOLO26原理与演进.html#musgd">MuSGD</a>，不要混淆监督对象、损失组合和参数更新。</li><li><strong>不清楚收益是否成立：</strong>阅读<a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html">实验设计与结果判读</a>。优化器基础见<a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html">从梯度到参数更新</a>。</li></ol><p class="fine-print">DFL 已在本页展开核心表示、相邻区间监督与解码关系；这不等于复现了完整训练。YOLO11 内部结构仍只作定位，后续可单独展开。</p></section>
+
+    <section id="training-deployment" class="overview-section" aria-labelledby="training-deployment-title">
+      <p class="eyebrow">把旧结构与新训练设计接起来</p><h2 id="training-deployment-title">训练可以增加帮助学习的路径，<br>部署保留完成预测所需的计算。</h2>
+      <p>训练需要获得有效监督和稳定梯度，部署需要准确且高效地输出结果。两个阶段的目标不同，因此可以采用不同的计算结构。重参数化、辅助监督和双分支训练都体现了这种取舍，但兑现收益的机制不同。</p>
+      <div class="table-scroll overview-scroll" tabindex="0" role="region" aria-label="训练与部署结构机制对照，可横向滚动"><table class="loss-family-table"><caption>共同思路不等于同一个算法；尤其不要把等价融合和辅助分支移除混为一谈</caption><thead><tr><th scope="col">代表设计</th><th scope="col">训练中增加什么</th><th scope="col">部署怎样处理</th></tr></thead><tbody>
+        <tr><th scope="row">RepVGG 风格重参数化 / YOLOv6</th><td>合适的卷积、BN 与恒等分支共同训练。</td><td>将分支参数等价融合为一个部署卷积，不是直接丢掉原旁支。</td></tr>
+        <tr><th scope="row">YOLOv7 主辅头</th><td>辅助检测监督，并协调粗、细标签分配。</td><td>辅助头不进入常规预测路径，保留训练所得参数。</td></tr>
+        <tr><th scope="row">YOLOv9 PGI</th><td>辅助可逆分支和多级辅助信息帮助组织训练梯度。</td><td>推理使用主分支；不要求主分支变成严格可逆网络。</td></tr>
+        <tr><th scope="row">YOLOv10 / YOLO26 双分支</th><td>丰富的一对多监督与面向输出的一对一监督分工。</td><td>免 NMS 路径使用一对一输出。指定实现的停止梯度和损失调度仍需分别核对。</td></tr>
+      </tbody></table></div>
+      <p>判断新方法时，先问它改善的是特征表达、监督组织、参数更新还是输出处理，再问训练收益怎样留在部署结果里。多个模块同时改变时，整体提升不能自动归给其中一个；需要对应的受控实验。</p>
+      <p class="math-source">原始依据：<a href="https://arxiv.org/abs/2101.03697" target="_blank" rel="noreferrer">RepVGG</a> · <a href="https://arxiv.org/html/2207.02696v1#S4" target="_blank" rel="noreferrer">YOLOv7 §4</a> · <a href="https://arxiv.org/html/2402.13616v2#S4.SS1" target="_blank" rel="noreferrer">YOLOv9 §4.1</a> · <a href="../02_YOLOv10/YOLOv10原理与演进.html#dual">YOLOv10 梯度路径</a> · <a href="../04_YOLO26/YOLO26原理与演进.html#assignment">YOLO26 分支设计</a></p>
+    </section>
+
+    <section id="feature-fusion" class="overview-section" aria-labelledby="feature-fusion-title"><h2 id="feature-fusion-title">特征设计，集中按一条逻辑展开。</h2><p>分辨率、感受野、1×1、跨尺度路径和块内计算，已集中到<a href="../../通用机制/特征提取与多尺度融合/index.html">特征提取与多尺度融合</a>：先看设计目的，再看结构图，最后对照版本与实验。</p><details><summary>原有细项入口</summary><ul class="moved-links"><li id="receptive-field"><a href="../../通用机制/特征提取与多尺度融合/index.html#receptive-field">感受野为何扩大</a></li><li id="rf-calculation"><a href="../../通用机制/特征提取与多尺度融合/index.html#rf-calculation">步长与感受野计算</a></li><li id="feature-levels"><a href="../../通用机制/特征提取与多尺度融合/index.html#feature-levels">路径与局部计算的区别</a></li><li id="fpn-pan"><a href="../../通用机制/特征提取与多尺度融合/index.html#fpn-pan">FPN / PAN 图解</a></li><li id="feature-concat"><a href="../../通用机制/特征提取与多尺度融合/index.html#feature-concat">拼接与相加</a></li><li id="feature-blocks"><a href="../../通用机制/特征提取与多尺度融合/index.html#feature-blocks">C3 / C2f / C3k2 图解</a></li><li id="feature-versions"><a href="../../通用机制/特征提取与多尺度融合/index.html#feature-versions">版本结构对照</a></li><li id="feature-other-branches"><a href="../../通用机制/特征提取与多尺度融合/index.html#feature-other-branches">其他分支的联系</a></li></ul></details></section>
+
+    <section id="structure-context" class="overview-section" aria-labelledby="structure-context-title"><h2 id="structure-context-title">结构延展，回到各自的设计问题。</h2><p>重参数化、ELAN / GELAN、可逆性、PGI 与硬件感知，已归入<a href="../../通用机制/特征提取与多尺度融合/index.html#structure-context">特征设计专题的延展部分</a>。保留原有内容与来源，不在总览重复铺开。</p><details><summary>原有细项入口</summary><ul class="moved-links"><li id="legacy-v5"><a href="../../通用机制/特征提取与多尺度融合/index.html#legacy-v5">早期框架与训练控制</a></li><li id="rep-branches"><a href="../../通用机制/特征提取与多尺度融合/index.html#rep-branches">重参数化</a></li><li id="elan-scaling"><a href="../../通用机制/特征提取与多尺度融合/index.html#elan-scaling">ELAN / GELAN 与缩放</a></li><li id="invertibility"><a href="../../通用机制/特征提取与多尺度融合/index.html#invertibility">跳跃连接与可逆性</a></li><li id="pgi-context"><a href="../../通用机制/特征提取与多尺度融合/index.html#pgi-context">信息、监督与 PGI</a></li><li id="hardware-aware"><a href="../../通用机制/特征提取与多尺度融合/index.html#hardware-aware">硬件感知与 NAS</a></li><li id="integration-scope"><a href="../../通用机制/特征提取与多尺度融合/index.html#integration-scope">原稿融合范围</a></li></ul></details></section>
+
+    <section id="sources" class="sources" aria-labelledby="sources-title">
+      <p class="eyebrow">回到原文</p><h2 id="sources-title">按要回答的问题，<br>选择对应的原始资料。</h2>
+      <ol><li><a href="https://arxiv.org/html/1506.02640v5#S2" target="_blank" rel="noreferrer">初代 YOLO §2：Unified Detection</a> —— 输出形状、格内责任、损失与推理；对应本页<a href="#yolov1">初代原理章节</a>。</li><li><a href="https://arxiv.org/html/1612.08242v1#S2" target="_blank" rel="noreferrer">YOLO9000 / YOLOv2 §2：Better</a> —— 全连接改全卷积、Anchor 与聚类、多尺度训练怎样改善定位和召回；与 v3 的三尺度输出区分。</li><li><a href="https://arxiv.org/html/2107.08430v2#S2" target="_blank" rel="noreferrer">YOLOX §2.1：Anchor-free、Multi positives</a> —— 看“每个位置几个预测”与“一个目标分配几个正样本”为什么是两回事。</li></ol>
+      <p>这些来源负责整体框架和监督分配的前置关系。免 NMS 设计看 <a href="https://arxiv.org/html/2405.14458v2#S3.SS1" target="_blank" rel="noreferrer">YOLOv10 §3.1</a>；YOLO26 看<a href="https://arxiv.org/html/2606.03748v1#S3" target="_blank" rel="noreferrer">论文 §3</a>及已整理的<a href="../04_YOLO26/YOLO26原理与演进.html#sources">本地中文全文与代码入口</a>。</p>
+      <p>版本对照中的实现口径：<a href="https://github.com/ultralytics/yolov5/blob/v6.1/utils/loss.py" target="_blank" rel="noreferrer">YOLOv5 v6.1 分配与损失</a>；<a href="https://github.com/WongKinYiu/yolov9/blob/main/utils/loss_tal_dual.py" target="_blank" rel="noreferrer">YOLOv9 原版 TAL 路径</a>；<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py" target="_blank" rel="noreferrer">Ultralytics 损失实现</a>。模型结构与其他分支来源见各版本条目。代码的 main 分支会变化，结论限定本次核对的路径。</p>
+    </section>
+    <footer>
+      <p>知识点：目标检测整体框架与演进（至 YOLO26）　·　概念示意，不作性能证据　·　框架基准：2026-11-01；演进索引：2026-11-03；损失与激活核对：2026-11-04；旧稿融合：2026-11-13</p>
+      <details><summary>本地使用与网站复用</summary><p>保留 index.html、styles.css、app.js、evolution.js、loss-activation.js 五个文件的相对位置，双击 index.html 即可离线使用。除点击原文链接外，不发送网络请求，不读取或上传个人数据。可以把整个文件夹复制到网站静态目录，通过 iframe 嵌入；不需要安装依赖或调用模型。专题采用相对链接，整体迁移时需保留目录关系或调整链接。</p><pre><code>&lt;iframe src="/interactive/yolo-framework/index.html"
+  title="YOLO 整体框架交互图解"
+  style="width:100%;height:1000px;border:0"
+  loading="lazy"&gt;&lt;/iframe&gt;</code></pre><p>iframe 保留独立样式，避免影响主站。#infer-3、#train-1 等片段直接定位原有步骤；#evolution 定位演进主线，#compare-v10-y26 恢复指定版本对照；#losses、#dfl-foundation、#activations、#output-transforms 可定位新增内容。这里只提供静态嵌入方式，尚未接入或发布到现有网站。</p></details>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOv3 · 粗层一路传到细层</title><desc id="d">Darknet-53 的三个尺度为13、26、52；较深特征上采样后与浅层拼接，每一层都有独立的三模板预测。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOv3 · 粗层一路传到细层</text><text x="13" y="46" class="note" text-anchor="start">以 416 × 416 输入为例；箭头表示特征传播</text>
+<g><rect class="normal" x="13" y="58" width="334" height="44" rx="7"/><text x="180" y="85" class="label" text-anchor="middle">Darknet-53 · 残差主干</text></g>
+<path class="flow" d="M180 102V113H81V125"/>
+<g><rect class="key" x="13" y="127" width="136" height="42" rx="7"/><text x="81" y="153" class="label" text-anchor="middle">深层 13 × 13</text></g>
+<g><rect class="normal" x="177" y="127" width="170" height="42" rx="7"/><text x="262" y="153" class="label" text-anchor="middle">13 × 13 检测</text></g>
+<path class="flow" d="M150 148H175"/>
+<path class="flow" d="M81 169V182H112V194"/>
+<g><rect class="key" x="13" y="196" width="202" height="50" rx="7"/><text x="114" y="217" class="label" text-anchor="middle">上采样 + 主干横向特征</text><text x="114" y="235" class="small" text-anchor="middle">26 × 26 融合</text></g>
+<g><rect class="normal" x="230" y="196" width="117" height="50" rx="7"/><text x="288.5" y="226" class="label" text-anchor="middle">26 × 26 检测</text></g>
+<path class="flow" d="M216 221H228"/>
+<path class="flow" d="M112 246V266"/>
+<g><rect class="key" x="13" y="268" width="202" height="50" rx="7"/><text x="114" y="289" class="label" text-anchor="middle">上采样 + 主干横向特征</text><text x="114" y="307" class="small" text-anchor="middle">52 × 52 融合</text></g>
+<g><rect class="normal" x="230" y="268" width="117" height="50" rx="7"/><text x="288.5" y="298" class="label" text-anchor="middle">52 × 52 检测</text></g>
+<path class="flow" d="M216 293H228"/>
+<text x="180" y="362" class="note" text-anchor="middle">每层每个位置有 3 种先验宽高；仍使用 NMS。</text>
+</svg>

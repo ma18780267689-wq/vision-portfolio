@@ -156,6 +156,8 @@ body{background:#fafaf8;color:#232726}
 .recent-work-item-wrap.is-spaced{padding-top:1.5rem}
 .site-footer-surface{display:block;padding:2rem 2.5rem;border-top:1px solid #23272626;border-radius:0;background:transparent;box-shadow:none}
 .site-footer-nav-group{width:100%;grid-template-columns:repeat(2,minmax(0,1fr));justify-self:stretch;gap:2rem}
+.site-footer-links a[href="./review/"]{display:inline-flex;align-items:center;min-height:36px;font-size:.8rem;font-weight:400;color:#606b65}
+.site-footer-links a[href="./review/"]:is(:hover,:focus-visible){color:#2f6556;text-decoration:underline}
 @media(max-width:640px){.recent-work-header{padding-bottom:1.5rem}.recent-work-item{padding:1.25rem;border-radius:1rem}.recent-work-item-wrap.is-spaced{padding-top:1.25rem}.site-footer-surface{padding:1.5rem 1rem}.site-footer-nav-group{gap:1.5rem}}
 
 /* Each project's reading path keeps the reference site's quiet reveal and hover motion. */

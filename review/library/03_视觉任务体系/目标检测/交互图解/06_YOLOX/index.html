@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="把 YOLOX 的结构、预测表达、样本分配、损失和训练策略连起来，并与免 NMS 的后续设计对应。">
+  <title>YOLOX 原理与结构机制</title>
+  <link rel="stylesheet" href="../01_YOLO整体框架/styles.css">
+  <style>.article{max-width:960px}.article section{scroll-margin-top:24px}.article h3{font-size:22px;margin-top:28px}.article .intro h1{font-size:clamp(36px,5vw,58px)}.article .overview-section{padding-top:44px}.article code{font: .92em Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere}.article .table-scroll{margin:24px 0}.article table{min-width:600px}.article th{white-space:normal}.article ol{padding-left:24px}.article li{margin-bottom:13px}.article .formula{font:17px/2 Consolas,"Microsoft YaHei",monospace;white-space:pre-wrap;overflow-wrap:anywhere}.article .scope{max-width:850px}.article summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}@media(max-width:650px){.article .overview-section{padding-top:32px}.article table td,.article table th{font-size:14px;padding:12px 9px}.article p{font-size:16px}.article .scope,.article .fine-print{font-size:13px}}</style>
+<link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+<script src="../01_YOLO整体框架/terms-yolo.js" defer></script>
+<script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script>
+<script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head>
+<body><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div>
+  <a class="skip-link" href="#core">跳到正文</a>
+  <header class="masthead wrap"><span>视觉任务体系 / 目标检测 / YOLOX</span><a href="../01_YOLO整体框架/index.html">整体框架</a><a href="../02_YOLOv10/YOLOv10原理与演进.html">YOLOv10</a></header>
+  <main class="wrap article">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">YOLOX · 结构、预测与监督</p>
+      <h1 id="page-title">让预测表达更直接，<br>让监督落到合适的位置。</h1>
+      <p class="lead">YOLOX 的目标是准确、实时地输出目标类别与位置。主干和特征融合网络提供多尺度信息；Anchor-free 简化框的表达，解耦头分别处理分类与定位，SimOTA 再决定哪些预测向哪个真实目标学习。</p>
+      <p class="scope">以常见 CSPDarknet + PAFPN 模型解释结构，以论文和官方 0.3.0 检测头说明分配与解码。论文用于逐项消融的 YOLOv3-SPP 基线，与最终不同规模模型的结构要分开。这里是原理解释，未运行训练或复现论文成绩。</p>
+      <nav class="overview-nav" aria-label="YOLOX 页内目录"><a href="#core">改动的职责</a><a href="#backbone">基础结构</a><a href="#fusion">多尺度融合</a><a href="#prediction">预测与解码</a><a href="#supervision">分配与损失</a><a href="#training">训练策略</a><a href="#nms-bridge">免 NMS 的连接</a><a href="#coverage">内容处理说明</a></nav>
+    </section>
+
+    <section id="core" class="overview-section" aria-labelledby="core-title">
+      <h2 id="core-title">表达、任务特征和监督责任，<br>分别需要设计。</h2>
+      <p>密集检测器会产生许多预测。预设锚框可以提供形状参照，但需要设定其宽高；分类和定位共享末端特征，可能有不同的特征需求；空间位置合适，也不代表当前预测适合负责目标。YOLOX 对这三个问题分别作了改动。</p>
+      <figure class="network-figure"><img src="../../通用机制/特征提取与多尺度融合/assets/network-x.svg" width="360" height="374" loading="lazy" alt="三尺度融合特征经各自的1×1卷积进入分类塔和回归塔。回归塔产生框和目标性；训练由SimOTA分配，常规推理仍做NMS。"><figcaption><strong>YOLOX · 常规检测</strong> <span>解耦的是分类与回归特征；目标性预测读取回归塔特征。Anchor-free 不会自动去掉 NMS。</span> <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">0.3.0 检测头</a></figcaption></figure>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="YOLOX 三项改动与职责对照，可横向滚动"><table><caption>不同改动相互配合，不能把全部精度提升归到一个模块</caption><thead><tr><th scope="col">问题</th><th scope="col">改动</th><th scope="col">作用与边界</th></tr></thead><tbody>
+        <tr><th scope="row">框怎样表示？</th><td>Anchor-free</td><td>每个位置预测一个框，省去预设宽高模板；网格参考、步长和空间先验仍存在。<a href="#anchor-free-benefit">看一个细长框</a></td></tr>
+        <tr><th scope="row">分类与定位怎样使用特征？</th><td>解耦检测头</td><td>在检测头末端设置分类与回归侧特征分支；不改变预测尺度的数量，也不取消共享主干。<a href="#decoupled-benefit">快在训练还是推理？</a></td></tr>
+        <tr><th scope="row">哪些预测负责哪个目标？</th><td>SimOTA</td><td>根据空间约束、分类和定位质量动态选择正样本；Anchor-based 方法同样需要样本分配。</td></tr>
+      </tbody></table></div>
+      <p class="fine-print">CSP、Focus、SPP、SiLU、PAN/FPN 都需要理解，但“模型采用了某模块”与“论文提出了该模块”是不同判断。论文的各项收益应按受控消融解释。</p>
+      <p class="math-source"><a href="https://arxiv.org/html/2107.08430v2#S2" target="_blank" rel="noreferrer">YOLOX 论文 §2、表 1 / 表 2</a></p>
+    </section>
+
+    <section id="backbone" class="overview-section" aria-labelledby="backbone-title">
+      <h2 id="backbone-title">下采样组织空间信息，<br>特征块决定怎样提取和保留信息。</h2>
+      <p>常见 YOLOX 主干逐步降低空间分辨率、增加或调整通道，再向融合网络提供步长为 8、16、32 的特征。内部还存在其他分辨率，但并非每次下采样后都直接设置检测头。</p>
+      <details id="focus"><summary>Focus：把相邻空间采样重排到通道</summary><p>按行列的奇偶索引取得四组采样，再沿通道拼接。对于偶数尺寸，<code>[B,C,H,W] → [B,4C,H/2,W/2]</code>。切片重排本身保留采样值，随后卷积再提取与混合信息。</p><p>因此，“空间尺寸减半”不等于所有信息立即被丢弃；也不能由此保证整个模块无损，或必然比任意步长卷积参数更少。参数和耗时取决于后续卷积、通道及部署实现。Focus 与 FCOS 是不同概念。</p></details>
+      <details id="csp"><summary>CSP：让部分特征经过较复杂计算，再与另一条路径融合</summary><p>YOLOX 的 CSPLayer 将同一输入分别送入两路卷积投影，一路继续经过若干 Bottleneck，另一路走较短路径，最后拼接并卷积融合。它并不一定是在代码里直接把原输入通道切成两半。</p><p>较短路径保留可复用的信息，较长路径进行更充分的变换。它们共同组织特征和梯度路径，在表达与计算开销之间取舍；不能写成某一路完全没有计算。</p></details>
+      <details id="spp"><summary>SPP：在同一空间分辨率聚合不同范围的上下文</summary><p>所列 SPPBottleneck 使用 5×5、9×9、13×13 最大池化，步长均为 1，并使用适当填充维持空间尺寸。将池化结果与未池化特征拼接后，再用卷积融合。</p><p>它增加不同感受野的上下文，不是直接生成三张不同分辨率的预测特征图。旧图中的一般 SPP 分箱公式，与这个具体实现也不能混用。</p></details>
+      <details id="activation"><summary>SiLU：内部特征变换与输出概率分开理解</summary><p><code>SiLU(x)=x·sigmoid(x)</code> 平滑且允许部分负响应。它不能保证梯度永不消失，也不能只因“更光滑”就断言任何任务上的精度更高。类别与目标存在性输出的 Sigmoid 又承担不同职责。</p><p><a href="../01_YOLO整体框架/index.html#activations">激活函数、导数与输出变换对照</a></p></details>
+      <p class="math-source">实现依据：<a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/models/darknet.py" target="_blank" rel="noreferrer">主干</a> · <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/models/network_blocks.py" target="_blank" rel="noreferrer">Focus、CSPLayer、SPPBottleneck</a></p>
+    </section>
+
+    <section id="fusion" class="overview-section" aria-labelledby="fusion-title">
+      <h2 id="fusion-title">各层交换信息，<br>融合之后仍保留分辨率上的区别。</h2>
+      <p>对于 640×640 输入，步长 8、16、32 对应 80×80、40×40、20×20 的特征布局。高分辨率特征保留较密的位置采样，深层特征提供更大范围的上下文；融合让各预测层能同时利用这些信息。</p>
+      <ol><li>自顶向下：将 20×20 特征调整通道后上采样，与 40×40 特征拼接并提取；再上采样，与 80×80 特征融合。</li><li>自底向上：将融合后的 80×80 特征下采样到 40×40，融合对应中间特征；再下采样到 20×20 并继续融合。</li><li>将最终三个分辨率的特征交给各自的检测头。每次拼接必须对齐空间尺寸，拼接本身增加通道，不负责下采样。</li></ol>
+      <p>多尺度融合的目的，是让不同分辨率的预测层都获得更充分的信息。融合之后各层仍有不同的空间分辨率，因此处理不同尺寸目标的条件不同；但三层没有严格的小、中、大目标独占关系，也不能仅由结构图断言某一路在数值上必然占主导。</p>
+      <p class="math-source"><a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/models/yolo_pafpn.py" target="_blank" rel="noreferrer">官方 PAFPN 的上采样、横向拼接和下采样路径</a></p>
+    </section>
+
+    <section id="prediction" class="overview-section" aria-labelledby="prediction-title">
+      <h2 id="prediction-title">先把特征变成规定格式，<br>再将框参数解码为图像坐标。</h2>
+      <p>每层特征进入 1×1 卷积入口后，分类与回归侧分别经过卷积。末端预测卷积输出框的四个参数、一个目标存在性分数及 K 个类别分数。目标存在性和框回归共享回归侧特征，不是三套完全独立的特征网络。</p>
+      <p>省略 batch 维度，每层原始输出为 <code>[4+1+K,H,W]</code>；展平三层空间位置后，得到 <code>[B,8400,5+K]</code>。8400 是 <code>80²+40²+20²</code>，不是图中目标数量，也不是一个目标占据的像素数量。</p>
+      <pre class="formula">x = (tx + grid_x) × stride
+y = (ty + grid_y) × stride
+w = exp(tw) × stride
+h = exp(th) × stride</pre>
+      <p>同一预测位置可回归一个完整目标框，不是只负责该目标的一块像素。宽高使用指数变换保证为正；可选 L1 监督中的 <code>log(gt_wh/stride)</code> 属于目标编码，不能当作推理解码。</p>
+      <p>类别与目标存在性经过 Sigmoid，常规候选分数由两者相乘。标准推理还需要分数过滤、NMS，以及将输入图坐标映射回原图。</p>
+      <h3 id="anchor-free-benefit">去掉宽高模板，细长物体就更容易检出吗？</h3>
+      <p>假设目标在输入图上宽 80、高 8 像素。带锚框的检测头也能回归出这个形状，但训练时要先确定哪些宽高模板能与它匹配。换一批产品，原来选的模板可能不再合适。YOLOX 取消了这一步：按上式，在步长 8 的层上，只要预测 <code>tw = ln(10)、th = 0</code>，解码宽高就是 80×8。中心偏移可以为正或负；训练时哪些位置负责它，仍由样本分配决定。</p>
+      <p>直接收益是少调一组模板。在论文的三尺度配置下，每处从三个候选减为一个，640×640 输入的候选总数从 25,200 减为 8,400。表 2 中，在已经加入强增强的基线上切换为 Anchor-free，COCO 总体 AP 从 42.0 升到 42.9。这一行没有单列小目标或长宽比；若缩放后细边只剩一两个像素，改框的表达也不能补回已经丢失的细节。实际要按输入图上的短边像素数、长宽比分组查漏检。</p>
+      <h3 id="decoupled-benefit">解耦头，快在训练还是推理？</h3>
+      <p>还是这个细长物体：判断它是什么，局部纹理可能已经够用；要把框画准，还得找对两端。原来的耦合头也能分别算分类损失和框损失，但两项预测依赖同一份末端特征。YOLOX 在共享特征之后给分类和定位各一组卷积，让两项任务各自学该看什么。目标存在性另有一个输出，读取的是定位分支的特征。</p>
+      <p>作者的训练曲线显示，解耦头用更少的训练轮数达到相近的 AP；这不等于每次前向计算更快。在同一个 Darknet53 基线里，只换检测头，AP 从 38.5 升到 39.6，单帧推理却从 10.5 增到 11.6 毫秒。这是 Tesla V100、640×640、FP16、batch=1、不含后处理的测量，不能直接当作现场速度。</p>
+      <p class="math-source"><a href="https://arxiv.org/html/2107.08430v2#S2.T2" target="_blank" rel="noreferrer">论文 §2.1：图 3 读训练曲线，表 2 比单项改动</a> · <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">官方检测头：forward 与 decode_outputs</a></p>
+      <p><a href="../03_样本分配/样本分配与监督机制.html#prediction">特征、预测张量和监督之间的关系</a> · <a href="../../模型原理/YOLO11/index.html">对照 YOLO11：同样不用宽高模板，为什么它预测的是四边距离？</a></p>
+    </section>
+
+    <section id="supervision" class="overview-section" aria-labelledby="supervision-title">
+      <h2 id="supervision-title">分配确定学习对象，<br>损失把责任关系转成梯度。</h2>
+      <p>真实标注只给出目标框和类别，还未指定哪个预测负责它。SimOTA 读取当前预测，形成这次训练的正样本掩码、对应 GT 和类别目标；随后用仍保留计算图的预测计算损失，再反向传播。</p>
+      <ol><li>空间初筛：0.3.0 先保留位于任一 GT 框内或中心窗口内的参考点；对于某个 GT，不同时满足框内与中心约束的位置会受到很大的几何代价。中心半径为 <code>2.5×该层步长</code>，不是统一扩大 20 像素。</li><li>计算代价：结合类别误差、负对数 IoU 定位代价和几何惩罚。匹配代价用于选责任，不等同于训练总损失。</li><li>确定数量：对每个 GT 取最高的至多 10 个候选 IoU，求和取整并至少设为 1，再选代价最低的对应数量位置。</li><li>处理争用：同一位置若被多个 GT 选中，只匹配最低代价的 GT。每个位置至多负责一个目标，一个 GT 可以有多个正样本；冲突之后不保证每个 GT 都仍有初选数量。</li></ol>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="YOLOX 损失参与位置，可横向滚动"><table><caption>正样本数按预测位置计，不按目标覆盖像素或 GT 个数计</caption><thead><tr><th scope="col">损失</th><th scope="col">计算位置</th><th scope="col">监督作用</th></tr></thead><tbody><tr><th scope="row">IoU 类框损失</th><td>匹配正样本</td><td>预测完整 GT 框；所列默认回归权重为 5。</td></tr><tr><th scope="row">Objectness BCE</th><td>全部预测位置</td><td>负责目标的位置标为正，其余位置监督为背景。</td></tr><tr><th scope="row">Classification BCE</th><td>匹配正样本</td><td>学习 GT 类别，官方实现使用匹配 IoU 调整类别软目标。</td></tr><tr><th scope="row">可选 L1</th><td>启用阶段的正样本</td><td>补充原始框参数监督；通常在训练收尾启用。</td></tr></tbody></table></div>
+      <p>所列实现将损失按前景预测数量归一化，并对零前景作保护。未匹配预测不被要求回归成零框。分配过程不求导，也不会自动切断原始预测用于训练损失的梯度。</p>
+      <p><a href="../05_SimOTA与TAL/SimOTA与TAL样本分配.html">SimOTA 与 TAL 的候选、排序、数量对照</a> · <a href="../03_样本分配/样本分配与监督机制.html#training-data">分配怎样落到具体损失</a></p>
+      <p class="math-source"><a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/models/yolo_head.py" target="_blank" rel="noreferrer">0.3.0 检测头、解码、get_assignments 与 dynamic_k_matching</a></p>
+    </section>
+
+    <section id="training" class="overview-section" aria-labelledby="training-title">
+      <h2 id="training-title">前期丰富训练变化，<br>收尾时重新关注稳定拟合。</h2>
+      <p>Mosaic 组合多张图像的目标、背景和尺度；MixUp 将图像混合，并保留两边的检测标注。YOLOX 比较过需要实例掩码的 Copy-Paste，但常规配方采用 Mosaic 与带尺度变化的 MixUp，不能把 Copy-Paste 当作默认流程。</p>
+      <p>官方基础配方在最后 15 个 epoch 关闭强混合增强并启用额外 L1 框监督。较接近真实分布的图像有助于收尾拟合，但 15 轮是配置，不是算法常数。</p>
+      <details id="recipe"><summary>预训练、冻结、优化器和学习率应怎样放回具体配方？</summary><p>论文在其强增强设置下发现 ImageNet 预训练不再带来收益，后续实验从头训练。这是指定实验条件的结论，不代表工业小数据任务都不需要预训练，也不代表所有第三方实现都采用同一配方。</p><p>标准官方配方包含动量 SGD、预热和学习率调度。冻结与解冻造成的曲线变化属于具体训练实现；不能把某一第三方训练脚本的行为写成 YOLOX 固有性质。学习率还应结合 batch、调度单位和实际记录值解释。</p><p><a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html#choice">优化器比较的条件</a> · <a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html#label-pipeline">标签链路与训练排查案例</a></p></details>
+      <p class="math-source"><a href="https://arxiv.org/html/2107.08430v2#S2.SS1" target="_blank" rel="noreferrer">论文的强增强与预训练实验</a> · <a href="https://github.com/Megvii-BaseDetection/YOLOX/blob/0.3.0/yolox/exp/yolox_base.py" target="_blank" rel="noreferrer">官方基础配置</a></p>
+    </section>
+
+    <section id="nms-bridge" class="overview-section" aria-labelledby="bridge-title">
+      <h2 id="bridge-title">多个预测共同学习目标，<br>常规推理仍需要处理重复。</h2>
+      <p>一对多分配给同一目标提供多个正监督位置，增加学习机会，也可能留下多个高分预测。NMS 负责在输出阶段抑制重复。取消预设 Anchor 的形状，没有取消这种一对多关系。</p>
+      <p>YOLOX 已实验过额外卷积、一对一分配和停止梯度的免 NMS 变体，但指定实验中的精度与速度都有下降，因此保留为可选模块。YOLOv10 后来系统设计了一致双重分配，重点是同时处理丰富监督与部署少重复的需求。不能仅因出现过类似组件，就说两个模型的训练设计相同。</p>
+      <p><a href="../02_YOLOv10/YOLOv10原理与演进.html#dual">YOLOv10 怎样补足一对一监督</a> · <a href="../01_YOLO整体框架/index.html#training-deployment">重参数化、辅助监督与双分支的横向对照</a></p>
+      <details id="tracking"><summary>检测结果怎样影响 ByteTrack？</summary><p>YOLOX 输出当前帧的框、类别和置信度，ByteTrack 使用这些观测建立跨帧轨迹。检测器不维护目标 ID。若检测输出过早删除低分真实框，跟踪器的低分框关联也无法再利用它们。</p><p>因此，检测器的分数过滤、召回率和框稳定性会影响跟踪结果；跟踪系统的阈值需要与检测输出配合，而不能只优化单帧展示效果。</p><p class="math-source"><a href="https://arxiv.org/abs/2110.06864" target="_blank" rel="noreferrer">ByteTrack 原论文</a></p></details>
+    </section>
+
+    <section id="coverage" class="overview-section" aria-labelledby="coverage-title">
+      <h2 id="coverage-title">保留原有问题，<br>用经过核对的机制重新回答。</h2>
+      <p>本文融合了既有笔记中的结构分析、分配与解码问题，以及后续讨论中的因果解释。技术机制归属于原论文和代码；多尺度侧重、训练与部署区别等解释保留为理解与归纳，不宣称新的算法贡献。</p>
+      <details><summary>哪些旧内容被合并、修正或保留在历史记录？</summary><ul><li>重复的主干、融合、检测头、SimOTA 说明合并到相应章节，保留完整因果关系。</li><li>“每个 GT 最后只保留一个预测”“推理解码宽高取对数”“Anchor-based 拟合 Anchor 而非 GT”等说法由正确机制替换。</li><li>“SiLU 不会梯度消失”“解耦对精度有绝对优势”等绝对结论不进入正文，保留其成立条件与实验来源。</li><li>旧训练曲线、具体学习率尝试和未填结果留在本地核对记录；它们不足以组成通用参数推荐，也不补写修复收益。</li><li>分割、姿态、图卷积等跨任务材料保留原稿，并在本地台账标明后续归属；不把它们算作本篇已完成。</li></ul></details>
+      <p class="fine-print">整理日期：2026-11-13。覆盖检查针对本次列明的旧稿与现有讲解，不代表穷尽所有 YOLO 分支、所有模型结构或全部前沿工作。原始文件未删除、未覆盖。</p>
+    </section>
+    <footer><p>正文及折叠说明可离线阅读，无须 JavaScript。专题链接延续现有知识体系；源代码链接按标注版本理解。</p><a href="../01_YOLO整体框架/index.html#connections">返回整体框架与专题入口</a></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOv10-S · 两个头，不同责任</title><desc id="d">C2f 系列主干和SCDown提取特征，深层SPPF、PSA和跨尺度融合后的一份特征送入两个检测头。一对多供训练，一对一输出供免NMS部署。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOv10-S · 两个头，不同责任</text><text x="13" y="46" class="note" text-anchor="start">THU-MIG 原版检测；下面的箭头表示前向</text>
+<g><rect class="normal" x="13" y="58" width="334" height="48" rx="7"/><text x="180" y="78" class="label" text-anchor="middle">主干：C2f / C2fCIB，SCDown</text><text x="180" y="96" class="small" text-anchor="middle">深层 SPPF → PSA</text></g>
+<path class="flow" d="M180 106V118"/>
+<g><rect class="normal" x="13" y="120" width="334" height="42" rx="7"/><text x="180" y="146" class="label" text-anchor="middle">双向融合 → 三尺度共享特征</text></g>
+<path class="flow" d="M180 162V178H92V193"/><path class="flow" d="M180 178H268V193"/>
+<g><rect class="aux" x="13" y="195" width="158" height="56" rx="7"/><text x="92" y="219" class="label" text-anchor="middle">一对多头</text><text x="92" y="237" class="small" text-anchor="middle">多个候选学同一目标</text></g><g><rect class="key" x="189" y="195" width="158" height="56" rx="7"/><text x="268" y="219" class="label" text-anchor="middle">一对一头</text><text x="268" y="237" class="small" text-anchor="middle">输入特征停止梯度</text></g>
+<path class="train" d="M92 251V269"/>
+<path class="flow" d="M268 251V269"/>
+<g><rect class="aux" x="13" y="271" width="158" height="52" rx="7"/><text x="92" y="293" class="label" text-anchor="middle">训练辅助监督</text><text x="92" y="311" class="small" text-anchor="middle">部署可省去</text></g><g><rect class="key" x="189" y="271" width="158" height="52" rx="7"/><text x="268" y="293" class="label" text-anchor="middle">部署保留此头</text><text x="268" y="311" class="small" text-anchor="middle">解码、按分数选结果</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">预测四边分布；一对一输出不再做常规 NMS。</text>
+</svg>

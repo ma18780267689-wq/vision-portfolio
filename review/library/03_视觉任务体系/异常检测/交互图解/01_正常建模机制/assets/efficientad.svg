@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 328" width="360" height="328" role="img" aria-labelledby="title desc">
+  <title id="title">EfficientAD：一个学生、两组输出、两张差异图</title><desc id="desc">测试图像输入教师、单一学生与自编码器。教师与学生第一组输出比较，产生局部图；自编码器与学生第二组输出比较，产生全局图。两图校准后平均。</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path fill="#476353" d="M0 0 8 4 0 8Z"/></marker></defs>
+  <style>
+    text{font:15px "Microsoft YaHei","PingFang SC",sans-serif;fill:#22362b;text-anchor:middle}
+    .major{font-size:17px;font-weight:700}.label{font-size:14px;font-weight:600;fill:#465a4b}.minor{font-size:13px}
+    .wire{stroke:#476353;stroke-width:1.7;fill:none;stroke-linejoin:round;stroke-linecap:round}
+    .node,.ref,.score{stroke-width:1.25}.node{fill:#fbfaf4;stroke:#859786}.ref{fill:#e1ecde;stroke:#4f7256}.score{fill:#f7ebd6;stroke:#99763a}
+  </style>
+  <text x="180" y="21" class="major">同一张待检图像</text>
+  <path d="M180 28V38M60 38H302" class="wire"/>
+  <path d="M60 38V54" class="wire" marker-end="url(#arrow)"/>
+  <path d="M180 38V54" class="wire" marker-end="url(#arrow)"/>
+  <path d="M302 38V54" class="wire" marker-end="url(#arrow)"/>
+  <rect class="ref" x="5" y="56" width="108" height="55" rx="7"/>
+  <text x="59" y="79" class="major">教师 T</text>
+  <text x="59" y="99" class="minor">局部 PDN</text>
+  <rect class="node" x="121" y="56" width="118" height="55" rx="7"/>
+  <text x="180" y="79" class="major">学生 S</text>
+  <text x="180" y="99" class="minor">共享隐藏层</text>
+  <rect class="ref" x="247" y="56" width="108" height="55" rx="7"/>
+  <text x="301" y="79">自编码器 A</text>
+  <text x="301" y="99" class="minor">整图瓶颈</text>
+  <path d="M180 112V124M140 124H220" class="wire"/>
+  <path d="M140 124V139" class="wire" marker-end="url(#arrow)"/>
+  <path d="M220 124V139" class="wire" marker-end="url(#arrow)"/>
+  <rect class="node" x="106" y="141" width="68" height="33" rx="7"/>
+  <text x="140" y="162">输出 Sₜ</text>
+  <rect class="node" x="185" y="141" width="70" height="33" rx="7"/>
+  <text x="220" y="162">输出 Sₐ</text>
+  <path d="M59 112V196" class="wire" marker-end="url(#arrow)"/>
+  <path d="M301 112V196" class="wire" marker-end="url(#arrow)"/>
+  <path d="M140 175V196" class="wire" marker-end="url(#arrow)"/>
+  <path d="M220 175V196" class="wire" marker-end="url(#arrow)"/>
+  <rect class="score" x="5" y="199" width="161" height="49" rx="7"/>
+  <text x="86" y="219" class="major">局部：T 对 Sₜ</text>
+  <text x="86" y="237" class="minor">逐位置平方差</text>
+  <rect class="score" x="194" y="199" width="161" height="49" rx="7"/>
+  <text x="274" y="219" class="major">全局：A 对 Sₐ</text>
+  <text x="274" y="237" class="minor">逐位置平方差</text>
+  <path d="M86 249V264H274V249" class="wire"/>
+  <path d="M180 264V280" class="wire" marker-end="url(#arrow)"/>
+  <rect class="score" x="40" y="282" width="280" height="35" rx="7"/>
+  <text x="180" y="305" class="major">两张图分别校准，再平均</text>
+</svg>

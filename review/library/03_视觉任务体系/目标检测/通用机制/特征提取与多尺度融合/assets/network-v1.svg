@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOv1 · 一个网格读整图</title><desc id="d">448×448 图像经24层卷积和两层全连接，形成7×7格。每格分别输出两套坐标和置信度，以及一套共享类别。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOv1 · 一个网格读整图</text><text x="13" y="46" class="note" text-anchor="start">原论文 VOC 配置；每格 2 个框、20 类</text>
+<g><rect class="normal" x="13" y="58" width="334" height="40" rx="7"/><text x="180" y="83" class="label" text-anchor="middle">448 × 448 × 3 输入</text></g>
+<path class="flow" d="M180 98V111"/>
+<g><rect class="normal" x="13" y="113" width="334" height="46" rx="7"/><text x="180" y="141" class="label" text-anchor="middle">24 层卷积提取整图特征</text></g>
+<path class="flow" d="M180 159V172"/>
+<g><rect class="key" x="13" y="174" width="334" height="46" rx="7"/><text x="180" y="202" class="label" text-anchor="middle">2 层全连接 → 7 × 7 × 30</text></g>
+<path class="flow" d="M180 220V233H92V246"/><path class="flow" d="M180 233H268V246"/>
+<g><rect class="normal" x="13" y="248" width="158" height="54" rx="7"/><text x="92" y="271" class="label" text-anchor="middle">2 组框 × 5 项</text><text x="92" y="289" class="small" text-anchor="middle">各自的坐标与置信度</text></g><g><rect class="normal" x="189" y="248" width="158" height="54" rx="7"/><text x="268" y="271" class="label" text-anchor="middle">1 组 20 类</text><text x="268" y="289" class="small" text-anchor="middle">同格两个框共享</text></g>
+<path class="flow" d="M92 302V313H180V325"/><path class="plain" d="M268 302V313H180"/>
+<g><rect class="key" x="13" y="327" width="334" height="22" rx="7"/><text x="180" y="343" class="label" text-anchor="middle">框置信度 × 对应类别值</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">推理可做 NMS；没有预设宽高模板。</text>
+</svg>

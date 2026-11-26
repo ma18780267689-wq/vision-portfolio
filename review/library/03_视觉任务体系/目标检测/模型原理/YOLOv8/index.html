@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>YOLOv8 · 从多尺度特征到一个检测框</title>
+  <link rel="stylesheet" href="../../交互图解/01_YOLO整体框架/styles.css"><link rel="stylesheet" href="../../交互图解/01_YOLO整体框架/reader-navigation.css">
+  <link rel="stylesheet" href="../../通用机制/特征提取与多尺度融合/topic.css"><link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+  <script src="../../交互图解/01_YOLO整体框架/reader-navigation.js" defer></script><script src="../../交互图解/01_YOLO整体框架/terms-yolo.js" defer></script>
+  <script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script><script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head><body id="top" class="has-quick-nav topic-page" data-topic-reader="true"><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div>
+<a class="skip-link" href="#features">跳到网络结构</a>
+<nav class="quick-nav" aria-label="快捷目录"><details open><summary>快捷目录</summary><ol>
+  <li><a href="#features">01 特征怎样融合</a></li><li><a href="#box">02 一个位置怎样出框</a></li>
+  <li><a href="#assign">03 谁来学、学什么</a></li><li><a href="#infer">04 推理为什么还要去重</a></li>
+  <li><a href="#limits">05 怎样验证效果</a></li><li><a href="#next">读完再做版本比较</a></li>
+</ol></details></nav>
+<header class="masthead wrap"><span>视觉任务体系 / 目标检测 / 模型原理</span><a href="../../交互图解/01_YOLO整体框架/index.html">YOLO 总览</a></header>
+<main class="wrap"><header class="topic-hero"><p class="eyebrow">YOLOv8 · 常规水平框检测</p>
+  <h1>一张图上有许多预测位置，<br>怎样得到一个可信的框？</h1>
+  <p class="lead">以手机边缘的一处磕碰为例：模型既需要局部纹理来找准边缘，也要看周围是不是平滑的反光。YOLOv8 在不同分辨率上融合这两类信息，再让每个位置分别回答“是什么”和“边界在哪”。只讲这两步还不够：训练时要挑出该学它的位置，推理时还要把重复结果合起来看。</p>
+  <p class="scope">以 Ultralytics 官方 v8.0.196 的标准三尺度 Detect 为准，不涵盖分割、姿态或其他检测头。以下数字用于说明运算，不是手机缺陷实测结果。</p></header>
+<section id="features" class="chapter"><p class="eyebrow">01 · 主线①　特征提取与多尺度融合</p>
+  <h2>先在同一层保留不同深度的特征，再在不同层之间传信息。</h2>
+  <p><strong>C2f 解决的是同一层内的信息复用。</strong>先用 1×1 卷积调整通道，分出两组。其中一组依次经过瓶颈块；最后把起初的两组和每个瓶颈块的输出一起拼接，再用 1×1 卷积混合。这样，最后一层既能用早期特征，也能用经过更多变换的特征，不必只看整串变换的最后一步。</p>
+  <p><strong>跨尺度靠的是另一组连接。</strong>深层经过 SPPF 汇集不同范围的信息，再逐级上采样，与较浅层的细节特征拼接。融合过的细层随后逐级下采样，让较粗的层也能利用这些信息。640×640 输入最后得到 80×80、40×40、20×20 三层预测网格。C2f 加工各个节点；它本身并不决定上采样接到哪一层。</p>
+  <div class="diagram-row"><figure><img src="../../通用机制/特征提取与多尺度融合/assets/network-v8.svg" width="360" height="374" alt="YOLOv8 整体：C2f 与 SPPF 提取特征，双向融合后分类塔与框塔分别预测"><figcaption><strong>看整网</strong>沿三层融合特征找到检测头。此图展示两个软件版本共用的结构层级；具体卷积按本文固定版本核对。</figcaption></figure>
+<figure><img src="../../通用机制/特征提取与多尺度融合/assets/c2f.svg" width="360" height="464" alt="C2f 内部：两组起始特征与瓶颈链的中间结果共同参与拼接"><figcaption><strong>看块内</strong>顺着每个瓶颈块的输出往后找，既能通向下一步变换，也能通向最后的拼接。</figcaption></figure></div>
+  <p class="math-source"><a href="https://github.com/ultralytics/ultralytics/blob/v8.0.196/ultralytics/cfg/models/v8/yolov8.yaml">三尺度网络配置</a> · <a href="https://github.com/ultralytics/ultralytics/blob/v8.0.196/ultralytics/nn/modules/block.py#L157">C2f 实现</a></p>
+</section>
+<section id="box" class="chapter"><p class="eyebrow">02 · 主线②　检测头与边界框表示</p>
+  <h2>直接从参考点量到四条边，省掉预设宽高模板。</h2>
+  <p>每个网格位置各有一个参考点。分类分支输出各类别的分数；回归分支输出参考点到左、上、右、下四条边的距离分布。这样的 Anchor-free 设计仍然有坐标参考，只是不必为每个项目重新挑一组宽高模板。</p>
+  <p><strong>算一个框。</strong>沿用一个宽 80、高 8 像素的框，左上角 (4,16)，右下角 (84,24)。在步长为 8 的层上，若参考点 (44,20) 被分配负责这个框，它到四边的距离是 (40,4,40,4) 像素，即 (5,0.5,5,0.5) 个网格单位。反过来，从参考点向左减 40、向上减 4、向右加 40、向下加 4，就得到原框。预测位置并不必须落在物体中心。</p>
+  <details><summary>一个位置为什么要输出 64 个回归值？它们还是一个框吗？</summary><div class="detail-content"><p>每条边输出 0 到 15 共 16 个距离档位的分数，四条边合计 64 个。每边独立做 softmax 并取加权平均，得到一个连续距离。比如距离 0 和 1 的权重各占一半，解码就是 0.5 格。每个位置仍然只解码出一个框。</p>
+  <p>固定版本的两个分支各自经过两层普通 3×3 卷积，再用 1×1 卷积输出所需通道。在 80 类 COCO 配置里，一个位置原始输出 64＋80＝144 个数；解码后是 4 个坐标加 80 个类别分数，没有单独的目标性分数。分支的拆分发生在特征计算阶段。</p></div></details>
+  <p class="math-source"><a href="https://github.com/ultralytics/ultralytics/blob/v8.0.196/ultralytics/nn/modules/head.py#L25">Detect：分支结构、参考点与解码</a></p>
+</section>
+<section id="assign" class="chapter"><p class="eyebrow">03 · 主线③④　样本分配与训练监督</p>
+  <h2>框写得出来，还要决定哪个位置有资格学它。</h2>
+  <p><strong>先分责任。</strong>训练时，一个标注周围有多个参考点。TAL 结合这次预测的目标类别分数与定位质量，对位于标注框内的候选排序。这个配方每个标注最多选 10 个，争用同一位置时再处理冲突。一个标注可以监督多个位置；“在框内”和“最终是正样本”是两步。</p>
+  <p><strong>再算误差。</strong>分类目标包含匹配质量，用 BCE 监督类别输出，背景位置的类别目标为零。被选中的前景位置还要学定位：CIoU 约束解码后整个框的几何误差；DFL 约束每条边的距离分布。上例的 0.5 格落在档位 0、1 之间，DFL 给相邻两档各一半目标权重。两种定位损失看的是同一个框的不同表示。</p>
+  <p>这三步的分工可以倒过来检查：TAL 选错了位置，再准确地算损失也教错了对象；已经选对了位置，分配器也不会替网络把四条边画准。</p>
+  <p class="math-source"><a href="https://github.com/ultralytics/ultralytics/blob/v8.0.196/ultralytics/utils/tal.py">TAL 排序与冲突处理</a> · <a href="https://github.com/ultralytics/ultralytics/blob/v8.0.196/ultralytics/utils/loss.py">损失与默认分配参数</a> · <a href="../../交互图解/05_SimOTA与TAL/SimOTA与TAL样本分配.html">样本分配的独立图解</a></p>
+</section>
+<section id="infer" class="chapter"><p class="eyebrow">04 · 主线⑤　重复预测与 NMS</p>
+  <h2>训练时允许多个位置报同一处损伤，推理时就可能出现重复框。</h2>
+  <p>推理时没有标注，也不再运行 TAL。三个尺度合计有 8,400 个候选位置；先解码，再按类别分数过滤。若同一处磕碰留下多个高度重叠的同类框，NMS 优先保留高分框，抑制与它重叠超过阈值的低分框。最终结果再映射回原图。</p>
+  <p>这解释了两个容易混淆的词：Anchor-free 说的是预测前不放宽高模板；能否免 NMS 取决于模型是否还会输出需要消除的重复框。标准 YOLOv8 仍需要这一步。相邻两处真实损伤若分别被框出但重叠很高，也可能受到抑制。</p>
+  <p class="math-source"><a href="https://github.com/ultralytics/ultralytics/blob/v8.0.196/ultralytics/models/yolo/detect/predict.py#L20">推理后处理与原图坐标还原</a></p>
+</section>
+<section id="limits" class="chapter"><p class="eyebrow">05 · 主线⑥　场景适配</p>
+  <h2>遇到漏检，先确认损伤信息在哪一步消失。</h2>
+  <p>把原始照片和实际送入模型的缩放图放在一起看。若窄边缩放后已几乎不可见，换一套分配规则并不会补回纹理；优先对照输入尺寸或裁剪策略。如果输入仍清楚，就检查漏检样本在分数过滤和 NMS 前后是否还有对应候选：有框但分数低，与有两个正确框却被去重，是两种不同的问题。</p>
+  <p>改变结构或输入尺寸时，在同一批测试图上比较固定误提示水平下的召回，再到目标硬件测吞吐和延迟。分布式回归能表达亚网格距离，不能据此推出任何细小缺陷都能检测，也不能单凭参数量判断哪个版本实际更快。</p>
+</section>
+<section id="next" class="chapter"><p class="eyebrow">版本对照</p><h2>v8 值得记的是检测配方和统一接口，不是首创四边距离。</h2>
+  <p>和 YOLOX 一样，v8 不预设宽高模板，也分开计算分类和定位特征。真正改变的是框的表示（中心偏移、宽高 → 四边距离分布）、打分（独立目标性乘类别 → 直接用类别分数）和样本分配（SimOTA → TAL）；这里是并排对照，不是按版本号推断继承。四边距离至少在 2019 年的 FCOS 中已有，DFL 和 TAL 也都有更早的论文。</p>
+  <p><strong>为什么用过 v8-Seg 的人会记住它？</strong>把检测权重换成分割权重，并提供实例轮廓标注，仍能用同一套 Python 接口或命令行训练、验证、预测和导出。Seg 会额外输出每个实例的掩膜，这不是检测权重自动多出一项能力。统一的是工作流程；导出后仍要核对目标后端支持的算子、后处理和数值精度。</p>
+  <p class="math-source"><a href="https://arxiv.org/html/1904.01355#S3.SS1">FCOS：从位置到四边</a> · <a href="https://arxiv.org/abs/2006.04388">GFL：分布式框表示和 DFL</a> · <a href="https://arxiv.org/abs/2108.07755">TOOD：任务对齐学习</a> · <a href="https://docs.ultralytics.com/models/yolov8/#supported-tasks-and-modes">官方任务与模式表</a>。</p>
+  <p class="topic-back"><a href="../YOLO11/index.html#compare">四版对照：YOLOv5、v7、v8、11 →</a>　<a href="../YOLOv5/index.html">经典 YOLOv5 专题</a></p>
+</section></main></body></html>

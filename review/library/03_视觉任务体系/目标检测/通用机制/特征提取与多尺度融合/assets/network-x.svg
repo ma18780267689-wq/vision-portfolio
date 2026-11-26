@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLOX · 一个位置，两条预测塔</title><desc id="d">三尺度融合特征经各自的1×1卷积进入分类塔和回归塔。回归塔产生框和目标性；训练由SimOTA分配，常规推理仍做NMS。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLOX · 一个位置，两条预测塔</text><text x="13" y="46" class="note" text-anchor="start">常规 CSPDarknet / PAFPN 路径；下方画一层为例</text>
+<g><rect class="normal" x="13" y="58" width="334" height="46" rx="7"/><text x="180" y="86" class="label" text-anchor="middle">CSPDarknet → PAFPN 双向融合</text></g>
+<path class="flow" d="M180 104V116"/>
+<g><rect class="normal" x="13" y="118" width="334" height="46" rx="7"/><text x="180" y="146" class="label" text-anchor="middle">三个尺度 · 步长 8 / 16 / 32</text></g>
+<path class="flow" d="M180 164V176"/>
+<g><rect class="key" x="13" y="178" width="334" height="39" rx="7"/><text x="180" y="202.5" class="label" text-anchor="middle">每层独立的 1×1 输入卷积</text></g>
+<path class="flow" d="M180 217V229H92V241"/><path class="flow" d="M180 229H268V241"/>
+<g><rect class="normal" x="13" y="243" width="158" height="39" rx="7"/><text x="92" y="267.5" class="label" text-anchor="middle">分类塔</text></g><g><rect class="key" x="189" y="243" width="158" height="39" rx="7"/><text x="268" y="267.5" class="label" text-anchor="middle">回归塔</text></g>
+<path class="flow" d="M92 282V301"/>
+<path class="flow" d="M268 282V301"/>
+<g><rect class="normal" x="13" y="303" width="158" height="41" rx="7"/><text x="92" y="328.5" class="label" text-anchor="middle">类别分数</text></g><g><rect class="key" x="189" y="303" width="158" height="41" rx="7"/><text x="268" y="328.5" class="label" text-anchor="middle">4 个框值 + 目标性</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">每位置一组预测；训练用 SimOTA，常规推理用 NMS。</text>
+</svg>

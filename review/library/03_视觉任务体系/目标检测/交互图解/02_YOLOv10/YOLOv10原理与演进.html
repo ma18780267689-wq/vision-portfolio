@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="从重复预测、一对一监督、双重分配到一致匹配度量，完整理解 YOLOv10 的 NMS-free 设计。包含可交互的候选匹配与训练部署路径。">
+<title>YOLOv10 · 原理与演进</title>
+<style>
+:root{color-scheme:light;--paper:#f6f4ed;--surface:#fffef9;--ink:#202e29;--muted:#58665f;--line:#d5dcd2;--green:#245b44;--soft:#e6eee2;--warm:#89501c;--warm-soft:#f3ead9;--red:#9d392f;--radius:16px}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.9 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}a{color:var(--green);text-underline-offset:4px}a:hover{color:var(--warm)}button,input{font:inherit}button,summary,input[type=range]{cursor:pointer}button{border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);padding:9px 16px;min-height:44px;transition:background .18s,border-color .18s,color .18s}button:hover{background:var(--soft);border-color:var(--green)}button[aria-pressed=true]{background:var(--green);border-color:var(--green);color:var(--surface)}:focus-visible{outline:3px solid var(--warm);outline-offset:4px}[hidden]{display:none!important}.wrap{width:min(1160px,calc(100% - 64px));margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 0;border-bottom:1px solid var(--line);font-size:13px}.top a{min-height:44px;display:inline-flex;align-items:center}.eyebrow{font-size:12px;letter-spacing:.12em;font-weight:700;color:var(--green);margin:0 0 12px}h1,h2{font-family:"Noto Serif CJK SC","Source Han Serif SC","SimSun",serif;line-height:1.4}h1{font-size:clamp(38px,5vw,62px);margin:0 0 28px;letter-spacing:-.025em}h2{font-size:clamp(27px,3vw,35px);margin:0 0 24px}h3{font-size:21px;line-height:1.5;margin:28px 0 14px}p{margin:0 0 18px}.hero{padding:56px 0 40px;max-width:900px}.lead{font-size:21px;line-height:1.9;max-width:850px}.scope,.small{font-size:13px;color:var(--muted)}.hero .scope{max-width:820px}.causal-route{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line);margin:30px 0 0}.causal-route a{padding:16px 20px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-decoration:none;font-size:15px}.causal-route span{font:12px Consolas,monospace;display:block;color:var(--muted);margin-bottom:3px}.causal-route a:hover{background:var(--soft)}.layout{display:grid;grid-template-columns:154px minmax(0,1fr);gap:46px;align-items:start;padding-top:18px}.toc{position:sticky;top:24px;font-size:13px}.toc a{display:block;padding:10px 0;text-decoration:none;color:var(--muted);border-bottom:1px solid var(--line)}.toc a:hover,.toc a[aria-current=location]{color:var(--green);font-weight:700}.content{min-width:0}.chapter{padding:36px 0 48px;border-top:1px solid var(--line)}.chapter>p,.prose{max-width:840px}.chapter-number{font:12px/1.5 Consolas,"Microsoft YaHei",sans-serif;color:var(--green);letter-spacing:.08em;margin-bottom:13px}.core{font-size:19px;line-height:1.9}.boundary{font-size:14px;color:var(--warm);padding:15px 0 0;border-top:1px solid var(--line);margin-top:24px}.relation{font-size:18px;font-weight:600;line-height:1.9;margin:26px 0}.demo{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);overflow:hidden;margin:28px 0}.demo-top{padding:22px 24px 14px}.demo-top h3{margin:0 0 7px}.demo-top p{margin:0;font-size:13px;color:var(--muted)}.switch{display:flex;flex-wrap:wrap;gap:8px}.demo-top .switch{margin-top:16px}.demo-work{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}figure{margin:0}.scene-panel{background:#e9ebe2;padding:18px;min-width:0}.scene-panel svg{display:block;width:100%;height:auto;aspect-ratio:600/380}.scene-panel figcaption{font-size:12px;color:var(--muted);margin-top:10px}.demo-explain{padding:22px;min-width:0}.demo-explain h4{margin:0 0 12px;font-size:20px}.demo-explain>p{font-size:15px}.role-list{list-style:none;margin:18px 0 0;padding:0}.role-list li{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}.role-list strong{font-family:Consolas,monospace;font-size:17px}.role-list .status{color:var(--muted)}.role-list .positive{color:var(--green);font-weight:700}.role-list .winner{color:var(--warm);font-weight:700}.demo-foot{padding:14px 24px;font-size:13px;color:var(--muted)}.two-notions{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:24px 0}.two-notions>div{padding:18px 20px;background:var(--soft);border-radius:10px}.two-notions h3{font-size:17px;margin:0 0 8px}.two-notions p{font-size:14px;margin:0}.network{padding:24px;border-top:1px solid var(--line)}.shared{max-width:500px;margin:0 auto;padding:16px 20px;border:1px solid var(--green);background:var(--soft);text-align:center;border-radius:12px}.shared strong{display:block;font-size:20px}.shared span{font-size:13px;color:var(--muted)}.fork{height:38px;max-width:500px;margin:auto;position:relative}.fork:before{content:"";position:absolute;left:50%;top:0;height:18px;border-left:2px solid var(--green)}.fork:after{content:"";position:absolute;left:0;right:0;top:18px;height:20px;border:2px solid var(--green);border-bottom:0}.branches{display:grid;grid-template-columns:1fr 1fr;gap:24px}.branch{border:1px solid var(--line);border-radius:12px;padding:20px;transition:background .2s,border-color .2s}.branch h4{font-size:18px;margin:0 0 12px}.branch p{font-size:14px;margin:8px 0}.branch .tag{font:12px Consolas,monospace;color:var(--green)}.branch.off{background:var(--paper);border-style:dashed}.branch.off .training-content{display:none}.branch .deployment-only{display:none}.branch.off .deployment-only{display:block;color:var(--muted)}.gradient{margin-top:14px!important;padding-top:12px;border-top:1px solid var(--line);color:var(--warm)}.network-result{padding:16px 20px;background:var(--soft);border-radius:10px;margin-top:22px;font-size:15px}.network-result p{margin:0}.code-note{font-size:13px;color:var(--muted);margin:18px 0 0}.code-note code,code{font-family:Consolas,monospace;font-size:.93em}details{padding:16px 0;border-top:1px solid var(--line)}summary{min-height:44px;font-weight:600;align-content:center;padding:5px 2px}details[open]>summary{margin-bottom:14px}details p{font-size:15px}.formula{background:var(--soft);padding:20px 24px;border-radius:10px;margin:22px 0;overflow-x:auto;font:20px/1.8 Georgia,"SimSun",serif;text-align:center}.formula .small{font-family:"Microsoft YaHei",sans-serif;display:block;text-align:left;margin-top:10px}.formula sub,.formula sup{font-size:.7em}.metric-controls{padding:0 24px 20px}.metric-controls .switch{margin:14px 0}.preset-note{font-size:14px;margin:8px 0 20px}.ranges{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px}.ranges label{display:flex;justify-content:space-between;gap:10px;font-size:14px}.ranges input{display:block;width:100%;min-height:44px;accent-color:var(--green);margin:0}.ranges output{font-variant-numeric:tabular-nums;color:var(--green);font-weight:700}.reset-row{text-align:right;margin-top:6px}.reset-row button{font-size:13px}.table-scroll{overflow-x:auto;margin:20px 0}.table-scroll:focus-visible{outline-offset:-3px}table{border-collapse:collapse;width:100%;text-align:left;font-size:14px;font-variant-numeric:tabular-nums}caption{text-align:left;color:var(--muted);font-size:13px;margin-bottom:10px}th,td{padding:11px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{font-weight:600}thead th{white-space:nowrap}.metric-table{min-width:660px}.best-cell{color:var(--green);font-weight:700;background:var(--soft)}.match-result{padding:15px 20px;background:var(--soft);border-radius:9px;margin:0 24px 20px;font-size:15px;min-height:88px}.match-result.mismatch{background:var(--warm-soft)}.match-result p{margin:0}.target-bars{padding:0 24px 22px}.target-bars h4{font-size:15px;margin:0 0 12px}.target-row{display:grid;grid-template-columns:25px 1fr 1fr;align-items:center;gap:12px;font-size:13px;margin:10px 0}.bar-cell{display:grid;grid-template-columns:minmax(20px,1fr) 42px;align-items:center;gap:7px}.track{height:11px;background:#e2e6dc;border-radius:3px;overflow:hidden}.fill{height:100%;background:var(--green);transition:width .2s}.fill.one{background:var(--warm)}.target-key{display:grid;grid-template-columns:25px 1fr 1fr;gap:12px;font-size:12px;color:var(--muted);margin-bottom:6px}.metric-explain{padding:0 24px 18px;font-size:13px;color:var(--muted)}.loss-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.loss-grid>div{padding:18px 20px;background:var(--surface);border:1px solid var(--line);border-radius:10px}.loss-grid h3{font-size:18px;margin:0 0 10px}.loss-grid p{font-size:14px;margin:0}.pipeline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:26px 0}.pipeline span{padding:10px 15px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px}.pipeline .arrow{border:0;background:none;padding:0;color:var(--muted)}.evidence-select{margin:18px 0}.evidence-table tr.selected td,.evidence-table tr.selected th{background:var(--soft)}.evidence-readout{padding:18px 20px;background:var(--soft);border-radius:10px;font-size:15px}.evidence-readout strong{color:var(--green)}.tradeoff{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.tradeoff h3{font-size:19px;margin:0 0 12px}.tradeoff ul{margin:0;padding-left:20px;font-size:15px}.tradeoff li{margin-bottom:10px}.architecture-list h3{font-size:18px;margin:0 0 12px}.architecture-list details p{font-size:15px}.source-list{padding-left:22px;font-size:14px}.source-list li{margin-bottom:14px;overflow-wrap:anywhere}.reading-order{padding-left:23px}.reading-order li{margin-bottom:15px}footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:13px;margin-top:24px}footer details p{font-size:13px}footer pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--soft);padding:16px;color:var(--ink)}.skip-link{position:absolute;left:20px;top:-90px;background:var(--surface);padding:12px;z-index:10}.skip-link:focus{top:8px}.source-ref{font-size:13px}.badge{display:inline-block;color:var(--green);font-size:12px;border:1px solid var(--line);padding:3px 8px;border-radius:5px;margin-bottom:10px}.no-script{padding:20px;background:var(--warm-soft)}
+@media(max-width:1040px){.layout{grid-template-columns:125px minmax(0,1fr);gap:28px}.wrap{width:calc(100% - 40px)}.demo-work{grid-template-columns:1fr}.scene-panel svg{max-height:340px}.scene-panel figcaption{max-width:620px;margin:8px auto 0}.demo-explain{display:grid;grid-template-columns:1fr 1fr;gap:0 25px}.demo-explain h4{grid-column:1}.demo-explain>p{grid-column:1}.role-list{grid-column:2;grid-row:1/4;margin:0}.metric-table{min-width:630px}}
+@media(max-width:760px){.wrap{width:calc(100% - 32px)}.top{font-size:12px;padding:12px 0}.hero{padding:38px 0 30px}h1{font-size:42px}.lead{font-size:18px}.layout{display:block;padding-top:0}.toc{position:static;display:flex;flex-wrap:wrap;gap:0 18px;margin-bottom:22px}.toc a{font-size:12px;padding:9px 0;min-height:44px}.toc>p{display:none}.chapter{padding:30px 0 34px}h2{font-size:29px}.causal-route a{padding:12px;font-size:13px}.causal-route{grid-template-columns:repeat(2,1fr)}.branches,.two-notions,.loss-grid,.tradeoff{grid-template-columns:1fr}.branches{gap:16px}.fork{display:none}.shared{margin-bottom:18px}.branch{padding:18px}.demo-top,.metric-controls,.network{padding-left:18px;padding-right:18px}.demo-explain{display:block;padding:18px}.role-list{margin-top:18px}.ranges{grid-template-columns:1fr;gap:10px}.switch button{font-size:13px;padding:9px 12px}.demo-top h3{font-size:20px}.match-result{margin-left:18px;margin-right:18px}.target-bars,.metric-explain{padding-left:18px;padding-right:18px}.formula{padding:16px;font-size:18px}.scene-panel{padding:12px}.demo-foot{padding:14px 18px}.two-notions,.loss-grid,.tradeoff{gap:16px}.evidence-table{font-size:13px}th,td{padding:10px 7px}.core{font-size:18px}.target-row{gap:8px}.bar-cell{gap:5px;grid-template-columns:minmax(15px,1fr) 36px}.target-key{gap:8px}footer{padding-bottom:24px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
+@media print{body{background:white}.wrap{width:100%}.layout{display:block}.toc,.switch,.ranges,.reset-row,.causal-route{display:none}.chapter{padding:20px 0}.demo,.network{break-inside:avoid}.hero{padding-top:20px}h1{font-size:36px}a{color:inherit}}
+</style>
+<link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+<script src="../01_YOLO整体框架/terms-yolo.js" defer></script>
+<script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script>
+<script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head>
+<body><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="top wrap"><span>视觉任务体系 / 目标检测 / YOLOv10</span><a href="../01_YOLO整体框架/index.html">回看 YOLO 整体框架</a></header>
+<main id="main" class="wrap">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">YOLOv10 · 原理与演进</p>
+    <h1 id="page-title">让训练获得充分监督，<br>让推理不再依赖 NMS。</h1>
+    <p class="lead">许多 YOLO 检测器先产生密集预测，再用非极大值抑制（<span data-term="nms">NMS</span>）去除重复框。这个组合能有效完成检测，但去重仍占用推理时间，也依赖额外的重叠规则。YOLOv10 希望在保持检测能力的同时，减少对这一步的依赖；难点是怎样让模型少输出重复目标，又保留原来有利于训练的丰富监督。</p>
+    <p class="scope">本页以论文 §3.1 与作者代码为主线，解释 NMS-free 的问题背景、双重标签分配、损失与梯度路径，并结合部署、消融和结构设计说明其作用。交互数字与图形是单目标示例，不运行真实模型；论文实验单独标明。</p>
+    <p class="term-help">带点线的词可悬停查看释义；点按可固定，再点一次或按 Esc 收起。</p>
+    <nav class="causal-route" aria-label="技术因果链">
+      <a href="#problem"><span>01 · 原方案</span>NMS 完成了什么，又留下什么成本</a><a href="#one-to-one"><span>02 · 第一次改变</span>让训练减少重复，遇到什么困难</a><a href="#dual"><span>03 · 补足监督</span>双重分配解决什么矛盾</a><a href="#metric"><span>04 · 新的问题</span>两个分支为什么还会不协调</a><a href="#inference"><span>05 · 执行</span>部署时怎样兑现收益</a><a href="#evidence"><span>06 · 验证</span>收益与代价是否成立</a>
+    </nav>
+  </section>
+  <div class="layout">
+    <aside class="toc" aria-label="页内目录"><p class="eyebrow">本页目录</p><a href="#problem">原方案与瓶颈</a><a href="#assignment">预测与尺度</a><a href="#one-to-one">一对一的取舍</a><a href="#dual">双重分配与梯度</a><a href="#metric">一致匹配度量</a><a href="#loss">监督与损失</a><a href="#inference">NMS-free 推理</a><a href="#evidence">消融与边界</a><a href="#architecture">其他结构创新</a><a href="#sources">原文与代码</a></aside>
+    <div class="content">
+      <section id="problem" class="chapter" aria-labelledby="problem-title">
+        <p class="chapter-number">00 / 原方案解决了什么，为什么还要改</p><h2 id="problem-title">NMS 已经能够去重，<br>为什么还要摆脱它？</h2>
+        <h3>原方案的分工：网络充分预测，NMS 处理重复</h3>
+        <p>密集检测器提供很多预测位置。一对多训练允许多个预测共同学习一个真实目标，有利于获得丰富监督，但这些预测也可能同时输出高分框。如果直接把它们都计为独立目标，同一颗螺丝就可能被报出好几次。</p>
+        <p>NMS 因此承担了必要的输出整理：常见做法是在同一类别内，按分数优先保留候选，再根据预测框之间的重叠程度抑制可能的重复项。它简单实用，让模型不必在训练时就完全解决“一物多个高分框”的问题。<span data-term="many">一对多</span>加 NMS 是一套有效方案，不能仅因后来出现 NMS-free 就把它说成无效设计。</p>
+        <h3>瓶颈：重复被处理了，成本仍留在推理路径里</h3>
+        <ol class="reading-order">
+          <li><strong>去重需要额外时间。</strong>前向计算结束后，还需要筛选、排序与重叠判断。处理成本受候选数量、场景与实现影响；网络前向越快，这段额外耗时越可能成为值得优化的部分。只优化网络，不能自动消除它。</li>
+          <li><strong>重叠规则不能直接判断是不是同一个物体。</strong>同一物体的重复框可能高度重叠，同类别两个真实物体的框也可能高度重叠。较低阈值容易多删，较高阈值又可能留重复，效果因此会受到规则和阈值的影响。</li>
+          <li><strong>部署还要支持这一处理环节。</strong>NMS 需要相应的算子或插件；具体后端也可能涉及额外的数据搬运、同步或适配。许多平台已有高效 NMS 实现，所以不能笼统说它无法加速，但这一步仍要纳入完整执行图和耗时评估。</li>
+        </ol>
+        <h3>NMS-free 想解决的，首先是这段推理依赖</h3>
+        <p class="core">如果能通过训练，让模型本身更倾向于为每个目标给出一个有效预测，就有机会省去推理时基于框重叠的重复抑制，减少检测延迟并简化部署路径。</p>
+        <p>NMS-free 设计需要同时兼顾精度与效率。除了压低重复框，还要保留相邻的真实目标，并准确预测目标框和类别。模型需要更有区分性的特征与合适的监督，才能承担原来交给 NMS 的一部分去重职责。</p>
+        <p>这也解释了为什么不能直接删除 NMS：旧训练目标可能仍然鼓励同一目标的多个预测一起得到高分。删除去重后，重复依旧存在。下一步需要先改变监督关系；而改变监督，又会引出新的训练困难。</p>
+        <p class="boundary">NMS-free 旨在降低包含输出处理在内的完整检测延迟。提速幅度取决于原来 NMS 的耗时占比、候选数量、硬件和实现，也要计入新方案引入的计算。NMS-free 不保证普遍大幅提速，也不能仅凭取消重叠抑制就断言拥挤场景一定更准。</p>
+        <p class="source-ref">问题定位对应：<a href="https://arxiv.org/html/2405.14458v2#S1" target="_blank" rel="noreferrer">YOLOv10 论文引言</a>；重叠抑制的定义见 <a href="https://docs.pytorch.org/vision/main/generated/torchvision.ops.nms.html" target="_blank" rel="noreferrer">Torchvision NMS 文档</a>，阈值导致误删的讨论可对照 <a href="https://arxiv.org/abs/1704.04503" target="_blank" rel="noreferrer">Soft-NMS 原论文</a>。具体收益和精度代价回到本页的<a href="#evidence">消融与边界</a>验证。</p>
+      </section>
+
+      <details id="nms-history"><summary>从 YOLOX 的一对多理解，接到 YOLOv10 的新设计</summary><p>常规 YOLOX 让多个预测共同学习一个目标，再通过 NMS 整理重复输出。它也实验过额外卷积、一对一分配和停止梯度的端到端变体，但指定实验中的精度与速度下降，因此没有纳入最终标准模型。</p><p>YOLOv10 针对丰富监督与少重复输出的取舍，系统设计一致双重分配。既有一对一组件提供了背景，不能据此把两套完整方案当成相同设计；Anchor-free 也没有自动消除重复。</p><p><a href="../06_YOLOX/index.html#nms-bridge">YOLOX 的完整预测与监督链条</a> · <a href="../01_YOLO整体框架/index.html#training-deployment">训练与部署结构的不同机制</a> · <a href="https://arxiv.org/html/2107.08430v2#S2.SS1" target="_blank" rel="noreferrer">YOLOX 原文的 End-to-end YOLO</a></p></details>
+
+      <section id="assignment" class="chapter" aria-labelledby="assignment-title">
+        <p class="chapter-number">01 / 先把选择对象说准确</p><h2 id="assignment-title">匹配的是一个具体预测，<br>而不只是一个尺度。</h2>
+        <p class="core">多尺度检测头在不同空间分辨率的特征层上产生候选预测。以 640×640 输入为例，<span data-term="stride">步长</span>为 8、16、32 的预测层分别包含 80×80、40×40、20×20 个位置。样本分配比较的是这些位置产生的具体预测。</p>
+        <p>一对一分配会比较候选与真实目标的匹配程度，再决定哪个预测负责这个目标。匹配考虑空间先验、目标类别的预测分数和框的定位质量；选择对象是具体候选，而非整层特征。不同图片、不同目标和训练阶段，匹配结果都可能不同。</p>
+        <div class="two-notions"><div><h3>目标覆盖区域</h3><p>真实框映射到特征坐标后可覆盖很多位置。这是几何范围，不等于所有覆盖位置都是正样本。</p></div><div><h3>负责学习的预测</h3><p>分配机制从候选中挑选正样本。每个正预测的框回归目标都是完整的真实框。</p></div></div>
+        <p>一对多分配给同一目标提供多个正预测，增加监督机会，也可能让多个预测对同一目标给出高分。推理时通常借助 NMS 抑制重复框。重复既可能来自同一尺度的相邻位置，也可能跨尺度出现。</p>
+        <div id="assignment-demo" class="demo">
+          <div class="demo-top"><h3>同一个目标，三种训练组织方式</h3><p>从多尺度输出中抽取 4 个候选框，编号 1—4 仅用于本页演示。Top-3 表示取匹配度量最高的 3 个候选，Top-1 表示取最高的 1 个。切换只改变监督方式，不运行模型训练或参数更新。</p><div id="assignment-modes" class="switch" role="group" aria-label="选择训练组织方式"><button type="button" data-mode="many" aria-pressed="true">一对多</button><button type="button" data-mode="one" aria-pressed="false">仅一对一</button><button type="button" data-mode="dual" aria-pressed="false">双重分配</button></div></div>
+          <div class="demo-work"><figure class="scene-panel"><svg id="candidate-scene" viewBox="0 0 600 380" role="img" aria-labelledby="candidate-scene-title candidate-scene-desc"></svg><figcaption>橙色虚线为真实框；数字为示例候选框编号，旁边的步长说明其来源预测层。实线强调当前被选为正样本的预测。</figcaption></figure><div class="demo-explain" aria-live="polite" aria-atomic="true"><h4 id="assignment-mode-title"></h4><p id="assignment-mode-body"></p><ul id="candidate-roles" class="role-list"></ul></div></div>
+          <div class="demo-foot">本例采用一致度量 α = 0.5、β = 6。匹配度量演示中可切换规则，并调整候选框 2 的分类分数与定位质量。假设所有候选均满足空间先验；不模拟多目标冲突，也不完整复现任务对齐学习（TAL）的分配流程。</div>
+        </div>
+        <p class="source-ref">对应：<a href="https://arxiv.org/html/2405.14458v2#S3.SS1" target="_blank" rel="noreferrer">论文 §3.1</a>。作者实现将多尺度输出汇集后分配，不是给每个尺度选一个目标代表。</p>
+
+        <div id="assignment-foundation">
+          <h3 id="supervision-chain">为什么需要先理解样本分配？</h3>
+          <p id="matching-and-loss">检测头先把多尺度特征变成规定格式的预测，再解码成框。<span data-term="assignment">样本分配</span>建立预测与真实标注（<span data-term="gt">Ground Truth，GT</span>）的对应，构造监督目标与损失掩码；损失由此产生梯度，反向传播再影响共享参数。它分配的是预测责任，不直接把参数分给某个物体。</p>
+          <p>每个训练批次都会构造当前监督，但不代表所有版本都按当前预测质量选择正样本。先验框（Anchor）聚类、预测解码、正样本选择与损失组织各有职责。这些机制解释了一对一减少了哪些正监督，以及双重分配和一致度量各自弥补的问题。</p>
+          <p><a href="../03_样本分配/样本分配与监督机制.html">延伸阅读：YOLO 样本分配 · 从预测到监督 →</a></p>
+          <p class="source-ref"><span id="simota">按问题查看：</span><a href="../03_样本分配/样本分配与监督机制.html#prediction">特征张量与预测框的形状</a> · <a href="../03_样本分配/样本分配与监督机制.html#training-data">分配如何进入损失</a> · <a id="dynamic-k" href="../03_样本分配/样本分配与监督机制.html#simota">SimOTA、动态 k 与 TAL</a> · <a id="assignment-evolution" href="../03_样本分配/样本分配与监督机制.html#assignment-evolution">各 YOLO 分支的区别</a>。延伸页解释样本分配的基础机制与版本差异；本页聚焦 YOLOv10 的训练与推理设计。</p>
+        </div>
+      </section>
+
+      <section id="one-to-one" class="chapter" aria-labelledby="one-title">
+        <p class="chapter-number">02 / 让训练减少重复，再看新的困难</p><h2 id="one-title">怎样让网络在训练时，<br>就朝少重复输出的方向学习？</h2>
+        <p>原来的一对多监督允许多个预测共同学习一个目标，因此没有直接要求其中只有一个成为有效输出。若希望推理时不再靠 NMS 去重，就需要在监督中体现“哪个预测负责输出这个目标”。一对一分配是实现这一目标的一条路线。</p>
+        <p>一对一的目标是让一个真实目标只匹配一个正预测。被选中的预测学习完整框与类别；其他未匹配任何目标的预测，其前景分类得分受到压低的监督。它们并非被强制回归成零大小的框。</p>
+        <p>预测网络仍可在多个尺度产生密集候选。发生变化的是“哪些预测被鼓励输出这个目标”，而不是“模型提前知道目标数，然后只生成相同数量的框”。</p>
+        <h3>新困难：去掉了多个正预测，也减少了学习机会</h3>
+        <p>原来，同一个目标可以在多个预测位置提供正向的分类与定位监督。现在只保留一个正预测，其他本来有潜力的候选不再从这个目标获得同样的正监督。训练需要用更少的正样本机会学好目标，同时还要形成足够有区分性的特征，让一个预测突出、相近的多余预测被压低。</p>
+        <p class="relation">正预测减少 → 正样本监督更稀疏 → 特征学习和收敛可能受影响。</p>
+        <p>稀疏指每个目标提供的正样本监督机会减少，不是整张图片只剩一个位置参与损失。未匹配位置仍参与相应的分类监督，负样本并没有消失。</p>
+        <p class="boundary">NMS-free 是一种训练与推理设计，不是“每张图片绝对不会重复或漏检”的硬保证。直接关闭旧模型的 NMS，不会自动获得这种输出能力。</p>
+      </section>
+
+      <section id="dual" class="chapter" aria-labelledby="dual-title">
+        <p class="chapter-number">03 / 让两个分支承担不同职责</p><h2 id="dual-title">训练保留丰富监督，<br>部署只留下需要的分支。</h2>
+      <figure class="network-figure"><img src="../../通用机制/特征提取与多尺度融合/assets/network-v10.svg" width="360" height="374" loading="lazy" alt="C2f 系列主干和SCDown提取特征，深层SPPF、PSA和跨尺度融合后的一份特征送入两个检测头。一对多供训练，一对一输出供免NMS部署。"><figcaption><strong>YOLOv10-S · 原版</strong> <span>共享三尺度特征，两个检测头各自训练。部署使用一对一头；停止梯度不阻止它在前向读取共享特征。</span> <a href="https://arxiv.org/html/2405.14458v2#S3" target="_blank" rel="noreferrer">论文 §3</a></figcaption></figure>
+        <p>一对一输出与丰富正监督之间存在取舍：推理希望少重复，训练又希望保留多个正预测。仅用一对一可能损失训练效果；退回一对多，部署又会重新依赖 NMS。</p>
+        <p>如果把两种分配直接压到同一组输出上，一种监督希望多个预测都为正，另一种监督又希望只突出其中一个，目标就可能存在分歧。YOLOv10 用两套预测头分开承担职责，既保留辅助训练的路径，又不要求部署运行两套输出。</p>
+        <p class="core">YOLOv10 使用双重标签分配：一对多分支为共享特征提供丰富监督，一对一分支学习用于 NMS-free 推理的输出。两个头都有自己的预测参数，共用主干与特征融合网络产生的多尺度特征。</p>
+        <div class="demo" id="network-demo"><div class="demo-top"><h3>前向路径与梯度路径</h3><p>切换训练与导出部署，查看实际保留的职责。这里的结构图不模拟网络训练。</p><div id="network-modes" class="switch" role="group" aria-label="选择训练或导出部署路径"><button type="button" data-network="train" aria-pressed="true">训练时</button><button type="button" data-network="deploy" aria-pressed="false">导出部署时</button></div></div>
+          <div class="network"><div class="shared"><strong>Backbone + Neck</strong><span>主干特征提取网络与特征融合网络；为两个头提供共享的多尺度特征</span></div><div class="fork" aria-hidden="true"></div><div class="branches"><div id="many-branch" class="branch"><p class="tag">ONE-TO-MANY</p><h4>一对多检测头</h4><div class="training-content"><p>官方分配器配置 Top-k = 10</p><p>分类 + 框回归 + 分布焦点损失（DFL）</p><p class="gradient">梯度：更新一对多头，并回传共享网络</p></div><p class="deployment-only">导出推理图不需要这条分支。训练时获得的共享参数仍然保留。</p></div><div id="one-branch" class="branch"><p class="tag">ONE-TO-ONE</p><h4>一对一检测头</h4><p id="one-branch-input"></p><p id="one-branch-loss"></p><p id="one-branch-gradient" class="gradient"></p></div></div><div id="network-result" class="network-result" role="status"></div><p class="code-note">代码核对点：<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/nn/modules/head.py#L445-L470" target="_blank" rel="noreferrer">v10Detect.forward</a> 中，一对一分支接收 <code>xi.detach()</code>。这会阻断该分支到共享特征的反向梯度，但仍允许训练一对一头自身的参数。</p></div>
+        </div>
+        <p>一对一头读取由一对多监督训练的共享特征，再学习自己的预测参数。两套检测头的权重独立；在该实现中，一对一分支的损失不直接更新主干与特征融合网络。</p>
+        <p class="small">上述停止梯度路径仅适用于所核对的双分支实现，并非所有一对一方法的固定要求。仅采用一对一训练的独立基线仍需训练共享特征，不能直接套用双分支的梯度路径。</p>
+        <p>这种协作不要求用显式蒸馏损失把一个头的输出复制给另一个头，也不是推理时把两个头的结果融合。部署时采用的是一对一分支。</p>
+      </section>
+
+      <section id="metric" class="chapter" aria-labelledby="metric-title">
+        <p class="chapter-number">04 / 双分支还需要协调选择偏好</p><h2 id="metric-title">都在学习同一目标，<br>也可能偏好不同预测。</h2>
+        <p>双重分配补充了监督数量，但没有自动保证两个分支认可同样的最佳预测。共享特征主要由一对多分支训练，一对一分支又要利用这些特征产生最终输出；如果两者对“谁应该优先输出这个目标”的判断不同，丰富监督与部署分支的需求就可能不够协调。</p>
+        <p>分类分数高的预测，框未必最准。如果一对多更看重定位，一对一更看重分类，两者就可能选中不同的最佳候选，并分别给予较强监督。需要协调的不仅是正样本数量，还有两条路径对优先候选的判断。</p>
+        <p class="small">两套检测头的预测参数独立，一对一分支的输入又经过停止梯度处理。因此，需要协调的是特征训练分支与部署预测分支的监督偏好，而非同一个输出上的冲突标签，或两分支在共享层直接对抗的梯度。</p>
+        <h3>先统一“什么预测更好”，再决定选几个</h3>
+        <p>因此，YOLOv10 希望一对一选中的预测，同时也是一对多最认可的候选。它保留两种分配数量的区别，约束的是比较候选时所采用的度量。</p>
+        <p>论文使用同时考虑分类和定位的匹配度量：</p>
+        <div class="formula" aria-label="匹配度量 m 等于 s 乘 p 的 alpha 次方，乘 q 的 beta 次方">m = s · p<sup>α</sup> · q<sup>β</sup><span class="small">s：预测参考点是否满足目标空间先验；p：该真实目标类别的预测分数；q：框与真实框的定位重叠质量。α、β 控制两项的相对影响。这是训练匹配度量，不是部署时直接显示的置信度。</span></div>
+        <p>匹配分数用于比较具体候选，由分类与定位共同决定。选中某个候选，只确定该预测对当前目标的监督责任，不会把整个尺度指定为该类目标的专属预测层。</p>
+        <div id="metric-demo" class="demo"><div class="demo-top"><h3>保持同一组预测，只改变匹配规则</h3><p>这是论文分析所采用的“两个头有相同预测”对照情形，用来隔离度量的影响。真实训练中两头的预测会逐渐不同，并不保证始终选中同一位置。</p></div>
+          <div class="metric-controls"><div id="metric-presets" class="switch" role="group" aria-label="选择一对一分支的匹配指数 alpha 和 beta"><button type="button" data-preset="consistent" aria-pressed="true">一致：α=0.5，β=6</button><button type="button" data-preset="different" aria-pressed="false">不一致：α=0.5，β=2</button><button type="button" data-preset="proportional" aria-pressed="false">同比例：α=1，β=12</button></div><p id="preset-note" class="preset-note"></p>
+          <div class="ranges"><div><label for="b-score">候选框 2 的分类分数 p <output id="b-score-value" for="b-score">0.90</output></label><input id="b-score" type="range" min="0.05" max="0.99" step="0.01" value="0.90"></div><div><label for="b-quality">候选框 2 的定位质量 q <output id="b-quality-value" for="b-quality">0.83</output></label><input id="b-quality" type="range" min="0.20" max="0.98" step="0.01" value="0.83"></div></div><div class="reset-row"><button id="reset-example" type="button">还原示例与度量</button></div>
+          <p class="small">窄屏下可横向滚动表格，查看匹配分数与排序。本例 s 均为 1；一对多 Top-3 仅为演示设置，官方训练配置并非 3。</p>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="候选匹配度量表，可横向滚动"><table class="metric-table"><caption>同一组示例候选在两个度量下的匹配排序；编号与候选框图一致</caption><thead><tr><th>候选框 / 预测步长</th><th>分类 p</th><th>定位 q</th><th>一对多 m</th><th>一对一 m</th><th>两头排序</th></tr></thead><tbody id="metric-rows"></tbody></table></div></div>
+          <div id="match-result" class="match-result" role="status"></div>
+          <div class="target-bars"><h4>示例候选的分类软目标</h4><div class="target-key"><span>编号</span><span>一对多目标</span><span>一对一目标</span></div><div id="target-rows"></div></div>
+          <p class="metric-explain">交并比（IoU）衡量两框的重叠程度，CIoU 在此基础上加入中心距离与长宽比惩罚。示例框同中心、同长宽比，改变框尺寸来得到指定 IoU，因此这些惩罚项为零。计算未模拟网络更新、完整 TAL、数值容差及多目标冲突，条形值也不是最终预测置信度。</p>
+        </div>
+        <h3>一致性为什么能缓解监督差距？</h3>
+        <p>一对多分配不只是给所有正样本统一贴上 1。任务对齐学习会根据匹配质量生成分类软目标，更优的正预测通常得到更强的目标值。一对一若选中了另一预测，两种监督就会有偏差。</p>
+        <p>论文在两头预测相同的分析条件下，把回归目标视为一致：匹配到同一目标的预测，回归的都是同一个真实框。重点分析的是分类监督差距。让一对一选中一对多的最佳正预测，可以使文中定义的监督差距最小；这不意味着两头全部标签相同。</p>
+        <div class="formula">α<sub>o2o</sub> = r α<sub>o2m</sub>，β<sub>o2o</sub> = r β<sub>o2m</sub>，r &gt; 0<br>m<sub>o2o</sub> = m<sub>o2m</sub><sup>r</sup><span class="small">下标 o2o、o2m 分别表示一对一、一对多，r 是正比例系数。在相同预测、相同空间先验下，正幂变换保持排序，因此最佳候选不变。α、β 应同比例变化；只随意改其中一个并不保证排序一致。默认 r = 1，两头都用 α = 0.5、β = 6。</span></div>
+        <details><summary>展开：示例中的分类软目标怎样计算？</summary><p>单目标示例用 u* 表示本分支所选正样本中的最高定位质量。正预测 j 的一对多目标按 <code>t_m,j = u*_m × m_m,j / max(m_m)</code> 归一化，未选中预测为 0。一对一只保留最佳预测 i，该预测目标为自身的定位质量 <code>t_o,i = q_i</code>，其他预测为 0。这里按官方 TAL 的分支内正样本归一化作简化计算，不计算论文的 1-Wasserstein 距离，也不声称复现完整数学推导。</p><p>在一致、相同预测的条件下，最佳候选对齐。即使如此，其余一对多正样本仍有非零目标，而一对一对应目标为零，所以是缩小监督差距，不是消除一切差异。实际 TAL 的归一化与多目标冲突需要结合完整代码。</p><p>论文以 IoU 表述定位项；核对的官方 TAL 实现使用截断到非负的 CIoU。不要把这项训练匹配质量，与 NMS 比较两个预测框的 IoU 阈值混为一谈。<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/tal.py#L64-L110" target="_blank" rel="noreferrer">分配与归一化代码</a></p></details>
+        <p class="boundary">两个头都用了 Top-k，并不意味着它们已有同一排序。一致性约束的是匹配度量的偏好；也不能由这个公式保证真实训练中两个头的预测永远相同。</p>
+      </section>
+
+      <section id="loss" class="chapter" aria-labelledby="loss-title">
+        <p class="chapter-number">05 / 把分配落到监督上</p><h2 id="loss-title">分配决定监督对象，<br>损失指导它怎样预测。</h2>
+        <p>仅仅选出正预测，还不会自动让分数和框变好。网络既要学准正预测的类别与位置，也要降低未匹配位置的多余前景响应。因此，需要把分配结果变成具体的监督目标，再通过损失更新参数。</p>
+        <p>作者代码中，一对多和一对一分别调用检测损失，主要包含分类、框回归与 DFL。两个分支损失相加；分类、定位、DFL 各自还使用配置中的权重。</p>
+        <div class="loss-grid"><div><h3>分类监督</h3><p>匹配的正预测使用与质量相关的类别软目标；未匹配位置的类别目标为零。分类损失覆盖预测集合，帮助压低多余前景响应。</p></div><div><h3>位置监督</h3><p>对匹配正预测计算框回归和 DFL。未匹配预测不被要求回归成零框；少一个正预测，减少的是相应正向位置与类别监督机会。</p></div></div>
+        <p style="margin-top:22px">YOLOv10 检测头没有独立的目标性评分（objectness）输出，背景由分类项监督。YOLOX 则分别设置目标性、类别与框回归损失，两者的输出与损失组织不同。</p>
+        <p>官方分配配置分别是 <code>tal_topk=10</code> 和 <code>tal_topk=1</code>，两者采用相同 α、β。Top-k 是候选选择配置，不是保证每个目标最终恰好拥有固定数量的正样本；空间筛选与多目标争用还会影响最终匹配。</p>
+        <p class="source-ref">核对：<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/loss.py#L130-L220" target="_blank" rel="noreferrer">v8DetectionLoss</a>、<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/loss.py#L640-L650" target="_blank" rel="noreferrer">v10DetectLoss</a>。Top-1 方式不同于必须引入匈牙利全局匹配；论文比较后选择了前者。</p>
+      </section>
+
+      <section id="inference" class="chapter" aria-labelledby="inference-title">
+        <p class="chapter-number">06 / NMS-free 不等于没有输出处理</p><h2 id="inference-title">部署去掉重复框抑制，<br>仍要把预测变成可用结果。</h2>
+        <p>训练阶段保留两个头，是为了补充监督，不代表部署也需要两个头。如果推理仍运行一对多分支并处理其重复框，就没有兑现这条设计希望省去的成本。另外，检测头输出的参数也不能直接当作最终结果，还需要解码、选择与坐标映射。</p>
+        <div class="pipeline" aria-label="导出部署流程"><span>图像与预处理</span><span class="arrow" aria-hidden="true">→</span><span>Backbone + Neck</span><span class="arrow" aria-hidden="true">→</span><span>一对一头</span><span class="arrow" aria-hidden="true">→</span><span>解码 + Top-k</span><span class="arrow" aria-hidden="true">→</span><span>结果过滤与坐标映射</span></div>
+        <p>推理时只采用一对一分支的输出，不再按预测框之间的 IoU 执行 NMS 去重。原来一对多分支对共享特征的训练收益，已经体现在保留下来的参数中。</p>
+        <p>作者导出路径中的 <code>v10postprocess</code> 先按每个候选的最高类别分数筛选，再在候选—类别分数中选 Top-k，默认最多输出 300 项。这里按分数选择，不计算预测框之间的重叠来抑制。业务侧仍可按阈值过滤、映射原图坐标，输出上限也可能影响极密集场景。</p>
+        <p>训练时的匹配 Top-1，是借助真实标注生成监督；推理时的 Top-k，是没有真实标注时按预测分数选输出。二者发生阶段和职责不同。</p>
+        <details><summary>展开：为什么直接测 PyTorch forward，可能得不到论文的速度？</summary><p>作者代码在非导出模式下仍会计算一对多分支，并返回额外结果。导出部署图可以去掉不需要的分支。项目 README 明确提醒，基准测试应使用导出格式，否则额外的 cv2 / cv3 运算会使速度比较失真。这里的 cv2 是模块属性名，不是指 OpenCV 调用。</p><p>比较延迟时，需要同时说明硬件、精度、输入、batch、是否包含后处理与 I/O。不能把“模型前向延迟”和“完整检测延迟”直接混成一列。<a href="https://github.com/THU-MIG/yolov10#notes" target="_blank" rel="noreferrer">作者的基准测试提醒</a>；<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/ops.py#L776-L788" target="_blank" rel="noreferrer">v10postprocess</a>。</p></details>
+        <p class="boundary">“NMS-free”减少了对手工重叠抑制与相应阈值的依赖，但不保证零误检、零漏检或完全不重复，也不意味着取消所有后处理。IoU 仍可用于训练的匹配与回归。</p>
+      </section>
+
+      <section id="evidence" class="chapter" aria-labelledby="evidence-title">
+        <p class="chapter-number">07 / 机制解释之后，再看实验能支持什么</p><h2 id="evidence-title">双重分配补回精度，<br>但不是没有代价的替换。</h2>
+        <p>双重分配的存在，说明作者针对监督稀疏提出了方案。这个方案是否有效，还需要对照实验；不能仅因为设计了辅助分支，就证明 NMS-free 在所有方面更好。</p>
+        <div class="evidence-select switch" id="evidence-modes" role="group" aria-label="查看论文消融方案"><button type="button" data-evidence="many" aria-pressed="true">一对多 + NMS</button><button type="button" data-evidence="one" aria-pressed="false">仅一对一</button><button type="button" data-evidence="dual" aria-pressed="false">双重分配</button></div>
+        <div class="table-scroll"><table class="evidence-table"><caption>论文表 3：基于 YOLOv8-S 的分配消融，不是最终完整 YOLOv10-S 的结果</caption><thead><tr><th>训练与推理方案</th><th>COCO AP</th><th>延迟 / ms</th></tr></thead><tbody><tr data-evidence-row="many" class="selected"><th scope="row">仅一对多，推理用 NMS</th><td>44.9</td><td>7.07</td></tr><tr data-evidence-row="one"><th scope="row">仅一对一，推理免 NMS</th><td>43.4</td><td>2.44</td></tr><tr data-evidence-row="dual"><th scope="row">双重分配，推理用一对一</th><td>44.3</td><td>2.44</td></tr></tbody></table></div>
+        <p id="evidence-readout" class="evidence-readout" role="status"></p>
+        <p class="small">AP 表示平均精度。表中数值由论文报告，独立于匹配度量演示，拖动候选分数不会改变它们。论文采用 T4、TensorRT FP16 的速度设置；端到端基准使用 COCO 验证集、批次大小 1，NMS 方案附加 efficientNMSPlugin，忽略输入输出（I/O）开销。具体数值不可直接推广到所有平台。</p>
+        <details><summary>展开：一致匹配度量的消融，是否也支持这一解释？</summary><div class="table-scroll"><table><caption>论文表 4 的部分结果；固定一对多 α = 0.5、β = 6</caption><thead><tr><th>一对一 α / β</th><th>关系</th><th>COCO AP</th></tr></thead><tbody><tr><td>0.5 / 2</td><td>不同比例</td><td>42.7</td></tr><tr><td>0.5 / 6</td><td>相同度量，r = 1</td><td>44.3</td></tr><tr><td>1 / 12</td><td>同比例，r = 2</td><td>44.3</td></tr></tbody></table></div><p>这些是作者在特定实验设置下的消融证据。交互示例只解释“为什么排序可能改变”，不能从几组候选计算出整个数据集的 AP。</p></details>
+        <div class="tradeoff"><div><h3>这条路线获得什么</h3><ul><li>部署不需要 NMS 的预测框重叠抑制，简化执行图。</li><li>一对多监督辅助特征学习，一对一分支服务于推理。</li><li>统一匹配偏好，缓解两分支的监督差距。</li></ul></div><div><h3>仍需承担什么</h3><ul><li>训练增加一个分支及其匹配、损失开销。</li><li>一对一依赖有区分性的特征，小模型仍可能有精度损失。</li><li>性能受数据、输入、部署实现和输出上限影响，需实际验证。</li></ul></div></div>
+        <details><summary>展开：训练成本与剩余精度差距</summary><p>论文附录的 8 张 RTX 3090、500 epoch、M 模型测试中，仅一对一为 26.7 小时，双重分配为 29.1 小时。把仅一对一延长到约相同训练时间后，论文仍报告其 AP 低于双分配。这个对照支持辅助监督的价值，不表示增加分支没有成本。</p><p>论文也报告，最终 NMS-free 模型与同架构的一对多 + NMS 训练版本仍可能存在差距，尤其在较小模型上。因此，应分别评价“取消 NMS 的训练策略”和“网络结构优化”的贡献。</p></details>
+        <p class="source-ref">对应：<a href="https://arxiv.org/html/2405.14458v2#S4.SS3" target="_blank" rel="noreferrer">论文 §4.3、表 3 / 表 4</a>，以及附录 A.4 / A.9。原文部分交叉引用编号存在错位，本页按实际表标题和数据定位。</p>
+      </section>
+
+      <section id="architecture" class="chapter architecture-list" aria-labelledby="architecture-title">
+        <p class="chapter-number">08 / 网络结构与前向效率</p><h2 id="architecture-title">NMS-free 优化输出组织，<br>结构设计继续优化前向计算。</h2>
+        <p>YOLOv10 以 YOLOv8 为基线，同时改进标签分配与网络结构。论文的另一条主线是整体效率—精度设计；这些结构改动与 NMS-free 训练设计承担不同职责，需要分别结合机制与消融评价。</p>
+        <p>原因在于：取消 NMS 只减少了部分输出处理，网络前向本身的计算冗余仍然存在；若模型表达不足，分类与定位也不会因为没有 NMS 就自动变准。因此，作者另行检查前向计算，把预算从冗余位置转向更有价值的表达。</p>
+        <details id="light-head"><summary>轻量分类头：减少检测头中的计算冗余</summary><p>分类与回归沿用相近的结构，不意味着它们需要同样的计算预算。作者发现分类头开销较大，而误差分析显示定位仍是重要瓶颈，因此先考虑减少分类侧的冗余。</p><p>采用深度可分离卷积等轻量设计，把更多计算预算留给必要的表达，并用实验检查精度是否受到损害。它改变前向成本，不直接规定哪个预测是正样本。</p></details>
+        <details id="downsample"><summary>空间—通道解耦下采样：分开处理通道与空间变化</summary><p>标准步长卷积同时混合通道并降低空间尺寸，计算开销较大；直接压缩空间又可能损失信息。需要在下采样效率与信息保留之间作取舍。</p><p>这里先用逐点卷积调整通道，再用逐通道卷积降低分辨率，以减少开销并尽量保留信息。它与“分类和定位解耦头”不是同一种解耦。</p></details>
+        <details id="cib"><summary>秩引导模块与 CIB：把紧凑块放在更合适的阶段</summary><p>不同阶段的信息冗余不同，统一使用同一种基础块，可能在某些阶段付出不必要的计算成本；无差别换成轻量块，又可能伤害需要表达能力的位置。</p><p>作者利用卷积权重的数值秩分析阶段冗余，以紧凑倒置块 CIB 替换部分阶段的基础块，并通过性能验证决定替换范围。它是设计阶段的结构选择，不是每张图片推理时动态计算秩、切换网络。</p></details>
+        <details id="large-kernel"><summary>大核卷积：在合适位置扩大感受野</summary><p>模型需要足够的上下文来辨别目标。扩大卷积核能增加感受野，但若把大核铺到所有阶段，尤其是高分辨率阶段，又可能增加明显开销；收益也会随模型能力变化。</p><p>深层 CIB 使用较大的逐通道卷积，并在训练时加入可重参数化分支辅助优化。大核带来的表达收益与模型规模、特征分辨率有关；论文没有把大核无差别加到所有阶段，也不主张所有模型规模都有相同收益。</p></details>
+        <details id="psa"><summary>PSA：只让部分通道承担自注意力计算</summary><p>为增强长距离关系建模，可以引入自注意力；但直接在全部通道和高分辨率特征上使用，计算与显存开销又会影响实时检测。因此，需要控制注意力的作用范围。</p><p>将通道分成两部分，让其中一部分经过自注意力与前馈计算，再与另一部分融合。放在低分辨率的深层位置，以较低开销引入全局建模。它改善特征表达，并不替代标签分配或 NMS-free 的监督设计。</p></details>
+        <p class="small" style="margin-top:20px">本节概述结构模块的职责与改动位置，详细设计见论文 §3.2。模型的最终提速来自训练推理设计与结构优化的共同作用，不能全部归因于取消 NMS。</p>
+      </section>
+
+      <section id="sources" class="chapter" aria-labelledby="sources-title"><p class="chapter-number">09 / 将解释与证据放在一起</p><h2 id="sources-title">对应原文与实现</h2>
+        <ol class="reading-order"><li>先读<strong>引言中关于模型前向与 NMS 后处理的段落</strong>，确认原方案的瓶颈与改进目标。</li><li>再读 <strong>§3.1 的 Dual label assignments</strong> 与图 2(a)，对应一对一的训练困难和两个分支的职责。</li><li>继续读 <strong>Consistent matching metric</strong>，对照本页的排序和软目标演示；附录 A.2 给出进一步推导。</li><li>查看 <strong>表 3、表 4</strong>，分别验证双重分配和度量一致性的作用。</li><li>结构设计进入 <strong>§3.2</strong>，与 NMS-free 分开评价，再合起来看整体收益。</li></ol>
+        <ul class="source-list"><li><a href="https://arxiv.org/html/2405.14458v2#S3.SS1">YOLOv10 英文原文 · §3.1</a>；<a href="https://arxiv.org/pdf/2405.14458v2">英文 PDF</a></li><li><a href="https://arxiv.org/html/2405.14458v2" target="_blank" rel="noreferrer">论文原文：YOLOv10: Real-Time End-to-End Object Detection，2405.14458v2</a>。作者 Ao Wang 等，NeurIPS 2024；原论文 CC BY 4.0。本页为非官方中文解释与独立教学图解。</li><li><a href="https://github.com/THU-MIG/yolov10" target="_blank" rel="noreferrer">THU-MIG / yolov10 作者仓库</a>：<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/nn/modules/head.py#L445-L470" target="_blank" rel="noreferrer">检测头与 detach</a>、<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/loss.py#L640-L650" target="_blank" rel="noreferrer">双分支损失</a>、<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/tal.py" target="_blank" rel="noreferrer">TAL 与匹配质量</a>、<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/ops.py#L776-L788" target="_blank" rel="noreferrer">推理输出选择</a>。核对日期：2026-11-02；链接指向 main，后续实现可能变化。</li></ul>
+        <noscript><p class="no-script">本页正文可直接阅读。交互演示需要 JavaScript：候选框按 1—4 编号。默认示例中分类分数最高的是候选框 1，但按 α = 0.5、β = 6 的匹配度量，最佳候选为候选框 3。改变为 α = 0.5、β = 2 时，一对一最佳候选变成候选框 2。</p></noscript>
+      </section>
+    </div>
+  </div>
+  <footer><p>内容范围：NMS-free 因果链、训练与部署实现核对、论文消融，以及结构创新概览。</p><details><summary>离线使用与知识库复用</summary><p>这是单个自包含 HTML 文件，样式、图形和交互都在文件内，无须安装依赖或联网。除主动打开原文链接外，不发起网络请求，不读取或上传个人数据。可复制到网站静态目录，通过 iframe 嵌入。源材料链接使用当前知识目录的相对路径，迁移后需一并迁移材料或调整链接。</p><pre><code>&lt;iframe src="/interactive/yolov10.html"
+  title="YOLOv10 原理与演进"
+  style="width:100%;height:1000px;border:0"
+  loading="lazy"&gt;&lt;/iframe&gt;</code></pre><p>支持 #assignment、#dual、#metric、#inference 等章节链接。图中四候选不是完整模型输出；演示的 Top-3 不代表官方 Top-10 配置；没有用一组演示分数推算准确率。</p></details></footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const state={mode:'many',preset:'consistent',network:'train',evidence:'many'};
+  const candidates=[{id:'A',level:'P3',p:.98,q:.60},{id:'B',level:'P3',p:.90,q:.83},{id:'C',level:'P4',p:.60,q:.90},{id:'D',level:'P5',p:.40,q:.45}];
+  const candidateNumbers={A:1,B:2,C:3,D:4},levelStrides={P3:8,P4:16,P5:32};
+  const candidateLabel=c=>`候选框 ${candidateNumbers[c.id]}`;
+  const presets={consistent:{a:.5,b:6,name:'一对多与一对一均采用 α=0.5、β=6。度量相同，候选排序一致。'},different:{a:.5,b:2,name:'一对多采用 α=0.5、β=6；一对一采用 α=0.5、β=2。两项相对权重改变，排序可能不同。'},proportional:{a:1,b:12,name:'一对多采用 α=0.5、β=6；一对一采用 α=1、β=12，即 r=2。数值变了，排序仍保持一致。'}};
+  const metric=(c,a,b)=>Math.pow(c.p,a)*Math.pow(c.q,b);
+  function selection(){
+    const preset=presets[state.preset];
+    const many=[...candidates].sort((a,b)=>metric(b,.5,6)-metric(a,.5,6));
+    const one=[...candidates].sort((a,b)=>metric(b,preset.a,preset.b)-metric(a,preset.a,preset.b));
+    return {many,one,positives:many.slice(0,3)};
+  }
+  const svgText=(x,y,s,size=20,color='var(--ink)',extra='')=>`<text x="${x}" y="${y}" font-family="Microsoft YaHei,sans-serif" font-size="${size}" fill="${color}" ${extra}>${s}</text>`;
+  function drawScene(){
+    const {one,positives}=selection();
+    let svg=`<title id="candidate-scene-title">同一个螺丝目标与来自三个尺度的四个候选预测</title><desc id="candidate-scene-desc">候选框1和2来自步长8的预测层，候选框3来自步长16的预测层，候选框4来自步长32的预测层。编号仅用于本页示例。一对多选中三个正预测；一对一按匹配度量选中一个具体预测。框和分数均为示意。</desc><defs><linearGradient id="screw-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dbe1d4"/><stop offset=".5" stop-color="#8e9f90"/><stop offset="1" stop-color="#c0cdbb"/></linearGradient></defs><rect x="25" y="25" width="550" height="320" rx="18" fill="#f4f4e9" stroke="#c6d0bf"/><path d="M45 65H310V290H555M40 310H335V90H555" stroke="#c6d2bb" stroke-width="9" fill="none"/><circle cx="180" cy="170" r="72" fill="url(#screw-metal)" stroke="#72856e" stroke-width="3"/><circle cx="180" cy="170" r="56" fill="none" stroke="#d8e1cf" stroke-width="4"/><path d="M150 170H210M180 140V200" stroke="#5d725c" stroke-width="11"/><rect x="90" y="80" width="180" height="180" fill="none" stroke="var(--warm)" stroke-width="3" stroke-dasharray="8 6"/>${svgText(67,305,'真实目标框',18,'var(--warm)')}`;
+    for(const [index,c] of candidates.entries()){
+      const size=180*Math.sqrt(c.q),left=180-size/2,top=170-size/2;
+      const isMany=positives.some(p=>p.id===c.id),isOne=one[0].id===c.id;
+      const active=state.mode==='many'?isMany:state.mode==='one'?isOne:(isMany||isOne);
+      const special=state.mode==='dual'&&isOne;
+      const stroke=special?'var(--warm)':active?'var(--green)':'#778573';
+      const ly=74+index*68;
+      svg+=`<g data-prediction="${c.id}"><rect x="${left}" y="${top}" width="${size}" height="${size}" fill="none" stroke="${stroke}" stroke-width="${active?3:1.5}" ${!active?'stroke-dasharray="4 5"':''}/><path d="M${left+size} ${top+size*(index+1)/5}L367 ${ly}" stroke="${stroke}" stroke-width="1.5" fill="none"/><rect x="374" y="${ly-24}" width="165" height="48" rx="7" fill="${active?'var(--soft)':'#f4f4e9'}"/>${svgText(389,ly+9,candidateNumbers[c.id],27,stroke)}${svgText(432,ly+6,'步长 '+levelStrides[c.level],18,stroke)}</g>`;
+    }
+    svg+=svgText(300,369,'每个候选预测完整框；没有先选定某一个尺度',17,'var(--muted)','text-anchor="middle"');
+    $('candidate-scene').innerHTML=svg;
+  }
+  function renderAssignment(){
+    const {one,positives}=selection(),best=one[0],names=positives.map(candidateLabel).join('、');
+    const texts={many:['多个预测共同学习同一目标',`本例 ${names} 被选为正预测，各自学习完整目标。丰富监督有利于训练，但推理输出仍可能重复，需要相应去重。`],one:['一个具体预测负责这个目标',`本例选中 ${candidateLabel(best)}（步长 ${levelStrides[best.level]}）。其他未匹配预测不获得该目标的正监督。其余预测层仍正常产生候选，供其他目标参与匹配。`],dual:['共享特征，两个头分别接受监督',`本例一对多分支选 ${names}；一对一分支选 ${candidateLabel(best)}。两套预测头具有独立参数，各自接受相应分配结果的监督。`]};
+    $('assignment-mode-title').textContent=texts[state.mode][0];$('assignment-mode-body').textContent=texts[state.mode][1];
+    $('candidate-roles').innerHTML=candidates.map(c=>{const m=positives.some(p=>p.id===c.id),o=best.id===c.id;let status='未选为正',cls='status';if(state.mode==='many'&&m){status='正预测';cls='positive';}if(state.mode==='one'&&o){status='正预测';cls='winner';}if(state.mode==='dual'){status=(m?'一对多正':'一对多未选')+' / '+(o?'一对一正':'一对一未选');cls=o?'winner':m?'positive':'status';}return `<li><strong>${candidateNumbers[c.id]}</strong><span>步长 ${levelStrides[c.level]}</span><span class="${cls}">${status}</span></li>`;}).join('');
+    for(const b of $('assignment-modes').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode));
+    drawScene();
+  }
+  function renderMetric(){
+    const {many,one,positives}=selection(),preset=presets[state.preset];
+    $('preset-note').textContent=preset.name;
+    for(const b of $('metric-presets').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.preset===state.preset));
+    $('b-score-value').value=candidates[1].p.toFixed(2);$('b-quality-value').value=candidates[1].q.toFixed(2);
+    $('metric-rows').innerHTML=candidates.map(c=>{const rm=many.findIndex(p=>p.id===c.id)+1,ro=one.findIndex(p=>p.id===c.id)+1;return `<tr data-candidate-row="${c.id}"><th scope="row">${candidateLabel(c)} · 步长 ${levelStrides[c.level]}</th><td>${c.p.toFixed(2)}</td><td>${c.q.toFixed(2)}</td><td class="${rm===1?'best-cell':''}">${metric(c,.5,6).toFixed(5)}</td><td class="${ro===1?'best-cell':''}">${metric(c,preset.a,preset.b).toFixed(5)}</td><td>${rm} / ${ro}</td></tr>`;}).join('');
+    const same=many[0].id===one[0].id;
+    $('match-result').classList.toggle('mismatch',!same);
+    $('match-result').textContent=`一对多最佳：${candidateLabel(many[0])}（步长 ${levelStrides[many[0].level]}）；一对一最佳：${candidateLabel(one[0])}（步长 ${levelStrides[one[0].level]}）。${same?'这组候选的最佳预测对齐；数值不必相同，排序才是关键。':'这组候选的选择发生分歧：分支对分类与定位的偏好不一致。'}`;
+    const uMany=Math.max(...positives.map(c=>c.q)),maxMetric=metric(many[0],.5,6);
+    $('target-rows').innerHTML=candidates.map(c=>{const tm=positives.some(p=>p.id===c.id)?uMany*metric(c,.5,6)/maxMetric:0,to=one[0].id===c.id?c.q:0;return `<div class="target-row" data-target-row="${c.id}"><strong>${candidateNumbers[c.id]}</strong><div class="bar-cell"><div class="track" aria-hidden="true"><div class="fill" style="width:${tm*100}%"></div></div><span>${tm.toFixed(2)}</span></div><div class="bar-cell"><div class="track" aria-hidden="true"><div class="fill one" style="width:${to*100}%"></div></div><span>${to.toFixed(2)}</span></div></div>`;}).join('');
+    renderAssignment();
+  }
+  function renderNetwork(){
+    const deploy=state.network==='deploy';
+    for(const b of $('network-modes').querySelectorAll('button'))b.setAttribute('aria-pressed',String((b.dataset.network==='deploy')===deploy));
+    $('many-branch').classList.toggle('off',deploy);
+    $('one-branch-input').textContent=deploy?'输入：保留下来的共享特征':'输入：共享特征经过 detach()';
+    $('one-branch-loss').textContent=deploy?'解码类别与框，按分数选择 Top-k 输出':'官方分配器配置 Top-k = 1；同类检测损失';
+    $('one-branch-gradient').textContent=deploy?'部署不计算训练损失，也不更新模型参数':'梯度：更新一对一头，不回传共享网络';
+    $('network-result').textContent=deploy?'部署保留 Backbone、Neck 与一对一头；不执行一对多预测和基于框重叠的 NMS。':'总损失包含两分支损失。共享网络接受一对多分支的梯度；一对一头在读取共享特征的同时训练自身参数。';
+  }
+  function renderEvidence(){
+    const descriptions={many:'一对多 + NMS：44.9 AP、7.07 ms。监督丰富，但此实验中端到端耗时包含 NMS。它仍比双分配的 44.3 AP 高 0.6 AP。',one:'仅一对一：43.4 AP、2.44 ms。相对一对多 + NMS，延迟下降，但 AP 低 1.5。减少重复输出的训练目标伴随着监督取舍。',dual:'双重分配：44.3 AP、2.44 ms。相对仅一对一补回 0.9 AP，保持相同推理延迟；仍比一对多 + NMS 低 0.6 AP。'};
+    for(const b of $('evidence-modes').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.evidence===state.evidence));
+    for(const row of document.querySelectorAll('[data-evidence-row]'))row.classList.toggle('selected',row.dataset.evidenceRow===state.evidence);
+    $('evidence-readout').textContent=descriptions[state.evidence];
+  }
+  $('assignment-modes').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(b){state.mode=b.dataset.mode;renderAssignment();}});
+  $('metric-presets').addEventListener('click',e=>{const b=e.target.closest('[data-preset]');if(b){state.preset=b.dataset.preset;renderMetric();}});
+  $('network-modes').addEventListener('click',e=>{const b=e.target.closest('[data-network]');if(b){state.network=b.dataset.network;renderNetwork();}});
+  $('evidence-modes').addEventListener('click',e=>{const b=e.target.closest('[data-evidence]');if(b){state.evidence=b.dataset.evidence;renderEvidence();}});
+  $('b-score').addEventListener('input',()=>{candidates[1].p=Number($('b-score').value);renderMetric();});
+  $('b-quality').addEventListener('input',()=>{candidates[1].q=Number($('b-quality').value);renderMetric();});
+  $('reset-example').addEventListener('click',()=>{candidates[1].p=.90;candidates[1].q=.83;$('b-score').value=.90;$('b-quality').value=.83;state.preset='consistent';renderMetric();});
+  const links=[...document.querySelectorAll('.toc a')];
+  const observer=new IntersectionObserver(entries=>{const first=entries.filter(e=>e.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top)[0];if(!first)return;for(const a of links){if(a.hash==='#'+first.target.id)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');}},{rootMargin:'-8% 0px -60% 0px'});
+  for(const section of document.querySelectorAll('.chapter'))observer.observe(section);
+  renderMetric();renderNetwork();renderEvidence();
+})();
+</script>
+</body>
+</html>

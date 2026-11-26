@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="464" viewBox="0 0 360 464" role="img" aria-labelledby="title desc">
+  <title id="title">C3k2：同一种内块连续加工，四路结果拼接</title>
+  <desc id="desc">以重复两次为例。输入投影后沿通道分为短路和长路；长路起点经过第一个内块，其输出再进入第二个内块。短路、长路起点以及两次输出分别送入通道拼接，再用 1×1 卷积混合。内块同型，参数独立。</desc>
+  <style>text{font:16px "Microsoft YaHei","PingFang SC",sans-serif;fill:#202e29;text-anchor:middle}.small{font-size:13px;fill:#46594c}.node{fill:#fffef9;stroke:#a7b7aa}.focus{fill:#e6eee2;stroke:#245b44}.path{fill:none;stroke:#245b44;stroke-width:1.5;marker-end:url(#arrow)}</style>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#245b44"/></marker></defs>
+  <text x="180" y="25">输入特征</text><path class="path" d="M180 34V48"/><rect class="node" x="91" y="50" width="178" height="38" rx="6"/><text x="180" y="75">1×1 投影，分两组</text>
+  <path class="path" d="M180 89V103H52V118"/><path class="path" d="M180 103V118"/>
+  <rect class="node" x="16" y="121" width="72" height="32" rx="5"/><text x="52" y="143">短路</text>
+  <rect class="node" x="130" y="121" width="100" height="32" rx="5"/><text x="180" y="143">长路起点</text>
+  <path class="path" d="M52 153V328"/><path class="path" d="M130 137H107V328"/><path class="path" d="M180 153V179"/>
+  <rect class="focus" x="108" y="182" width="144" height="38" rx="6"/><text x="180" y="207">第 1 次变换</text>
+  <path class="path" d="M180 220V247"/><path class="path" d="M180 233H284V328"/>
+  <rect class="focus" x="108" y="250" width="144" height="38" rx="6"/><text x="180" y="275">第 2 次变换</text><path class="path" d="M180 288V328"/>
+  <rect class="node" x="25" y="331" width="292" height="36" rx="6"/><text x="171" y="355">按通道拼接四组特征</text>
+  <path class="path" d="M171 367V386"/><rect class="node" x="91" y="388" width="160" height="36" rx="6"/><text x="171" y="412">1×1 混合</text>
+  <text x="180" y="448" class="small">两次变换同型、参数独立；重复次数仅为示意</text>
+</svg>

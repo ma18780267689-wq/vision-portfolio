@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="374" viewBox="0 0 360 374" role="img" aria-labelledby="t d">
+<title id="t">YOLO26 · 双头保留，直接回归四边</title><desc id="d">YOLO11式C3k2主干与深层SPPF和C2PSA，跨尺度融合供给一对多和一对一检测头。两头均直接预测边距；辅助损失逐渐减重，免 NMS 路径用一对一头。</desc>
+<defs><marker id="a" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#34694e"/></marker><marker id="b" viewBox="0 0 6 6" refX="5" refY="3" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#875b2b"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#24362c}.title{font-weight:700;font-size:20px}.small,.note{font-size:13px}.note{fill:#455e50}.label{font-size:15px;font-weight:600}.normal,.key,.aux{stroke-width:1.2}.normal{fill:#fffef9;stroke:#aab9af}.key{fill:#e4efe3;stroke:#33664a}.aux{fill:#fbf1df;stroke:#9b784b}.flow,.train,.plain{fill:none;stroke:#34694e;stroke-width:1.5;stroke-linejoin:round}.flow{marker-end:url(#a)}.train{stroke:#875b2b;stroke-dasharray:4 3;marker-end:url(#b)}</style>
+<text x="13" y="23" class="title" text-anchor="start">YOLO26 · 双头保留，直接回归四边</text><text x="13" y="46" class="note" text-anchor="start">Ultralytics v8.4.0 · 端到端检测路径</text>
+<g><rect class="normal" x="13" y="58" width="334" height="48" rx="7"/><text x="180" y="78" class="label" text-anchor="middle">C3k2 主干，深层 SPPF → C2PSA</text><text x="180" y="96" class="small" text-anchor="middle">跨尺度融合后保留三个输出层</text></g>
+<path class="flow" d="M180 106V119"/>
+<g><rect class="key" x="13" y="121" width="334" height="48" rx="7"/><text x="180" y="141" class="label" text-anchor="middle">两头均直接回归四边距离</text><text x="180" y="159" class="small" text-anchor="middle">reg_max = 1，不再预测离散分布</text></g>
+<path class="flow" d="M180 169V181H92V194"/><path class="flow" d="M180 181H268V194"/>
+<g><rect class="aux" x="13" y="196" width="158" height="56" rx="7"/><text x="92" y="220" class="label" text-anchor="middle">一对多头</text><text x="92" y="238" class="small" text-anchor="middle">早期提供丰富监督</text></g><g><rect class="key" x="189" y="196" width="158" height="56" rx="7"/><text x="268" y="220" class="label" text-anchor="middle">一对一头</text><text x="268" y="238" class="small" text-anchor="middle">输出贴近部署需求</text></g>
+<path class="train" d="M92 252V267"/>
+<path class="flow" d="M268 252V267"/>
+<g><rect class="aux" x="13" y="269" width="158" height="57" rx="7"/><text x="92" y="293.5" class="label" text-anchor="middle">渐进降低损失权重</text><text x="92" y="311.5" class="small" text-anchor="middle">免 NMS 时省去此头</text></g><g><rect class="key" x="189" y="269" width="158" height="57" rx="7"/><text x="268" y="293.5" class="label" text-anchor="middle">训练后期提高权重</text><text x="268" y="311.5" class="small" text-anchor="middle">此路推理免 NMS</text></g>
+<text x="180" y="362" class="note" text-anchor="middle">权重调度属于训练；推理不执行分配、损失或优化器。</text>
+</svg>

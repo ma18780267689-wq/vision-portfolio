@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="356" viewBox="0 0 360 356" role="img" aria-labelledby="name desc">
+  <title id="name">同一组候选，SimOTA 和 TAL 如何定名额</title>
+  <desc id="desc">假设一个目标的四个合格候选 IoU 为 0.8、0.7、0.4、0.2。SimOTA 求和取整数得到两个名额；TAL 示例预设三个名额。前者按综合代价从小到大选，后者按分类与定位对齐分从大到小选。不模拟多目标争用。</desc>
+  <style>text{font:15px 'Microsoft YaHei',system-ui,sans-serif;fill:#23352c}.bold{font-weight:700}.small{font-size:13px;fill:#46584c}.line{fill:none;stroke:#47634f;stroke-width:1.6}.box{fill:#eef3e9;stroke:#729079}</style>
+  <text x="12" y="24" class="bold">一个真实框，四个均合格的候选</text>
+  <text x="12" y="48" class="small">先固定候选，只比较“给几个名额、怎么排”。</text>
+  <g text-anchor="middle"><rect class="box" x="12" y="62" width="336" height="38" rx="6"/>
+    <text x="180" y="86">IoU： 0.8　·　0.7　·　0.4　·　0.2</text></g>
+  <path class="line" d="M180 100v10M12 110h336"/>
+  <rect x="12" y="124" width="336" height="88" rx="6" fill="#eaf0e5" stroke="#829781"/>
+  <text x="23" y="146" class="bold">SimOTA · 名额由这组预测估计</text>
+  <text x="23" y="173">IoU 求和 2.1 → 取整 → 选 2 个</text>
+  <text x="23" y="196" class="small">具体选谁：综合代价小的优先。</text>
+  <rect x="12" y="224" width="336" height="88" rx="6" fill="#f5eddd" stroke="#a48759"/>
+  <text x="23" y="246" class="bold">TAL · 示例预设 K = 3</text>
+  <text x="23" y="273">分类分与定位质量对齐 → 选前 3 个</text>
+  <text x="23" y="296" class="small">K 固定，入选的是谁仍随当前预测变化。</text>
+  <text x="12" y="337" class="small">为说明机制设例；K = 3 不是统一默认配置。</text>
+</svg>

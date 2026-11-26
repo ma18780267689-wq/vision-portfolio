@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 324" width="360" height="324" role="img" aria-labelledby="title desc">
+  <title id="title">PatchCore：从正常库检索局部近邻</title><desc id="desc">建库与推理共用冻结特征提取器。正常描述经过核心集筛选入库；待检局部向量逐一查到最近正常向量的距离，形成空间分数图。</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path fill="#476353" d="M0 0 8 4 0 8Z"/></marker></defs>
+  <style>
+    text{font:15px "Microsoft YaHei","PingFang SC",sans-serif;fill:#22362b;text-anchor:middle}
+    .major{font-size:17px;font-weight:700}.label{font-size:14px;font-weight:600;fill:#465a4b}.minor{font-size:13px}
+    .wire{stroke:#476353;stroke-width:1.7;fill:none;stroke-linejoin:round;stroke-linecap:round}
+    .node,.ref,.score{stroke-width:1.25}.node{fill:#fbfaf4;stroke:#859786}.ref{fill:#e1ecde;stroke:#4f7256}.score{fill:#f7ebd6;stroke:#99763a}
+  </style>
+  <text x="86" y="21" class="major">建库 · 正常图像</text>
+  <text x="269" y="21" class="major">推理 · 待检图像</text>
+  <path d="M86 28V47" class="wire" marker-end="url(#arrow)"/>
+  <path d="M269 28V47" class="wire" marker-end="url(#arrow)"/>
+  <rect class="ref" x="13" y="49" width="334" height="52" rx="7"/>
+  <text x="180" y="71" class="major">同一冻结主干 · WideResNet50</text>
+  <text x="180" y="90" class="minor">取中层两级特征，聚合邻域并对齐</text>
+  <path d="M86 102V123" class="wire" marker-end="url(#arrow)"/>
+  <path d="M269 102V123" class="wire" marker-end="url(#arrow)"/>
+  <rect class="node" x="9" y="126" width="151" height="38" rx="7"/>
+  <text x="84" y="150">正常局部向量</text>
+  <rect class="node" x="198" y="126" width="153" height="38" rx="7"/>
+  <text x="274" y="150">待检局部向量</text>
+  <path d="M84 164V202" class="wire" marker-end="url(#arrow)"/>
+  <text x="119" y="187" class="minor">选核心集</text>
+  <path d="M274 165V204" class="wire" marker-end="url(#arrow)"/>
+  <path class="ref" d="M16 216C16 203 148 203 148 216V242C148 257 16 257 16 242Z"/>
+  <ellipse class="ref" cx="82" cy="216" rx="66" ry="8"/>
+  <text x="82" y="241" class="major">正常记忆库</text>
+  <path d="M149 232H194" class="wire" marker-end="url(#arrow)"/>
+  <rect class="score" x="197" y="206" width="154" height="47" rx="7"/>
+  <text x="274" y="227">逐位置找最近邻</text>
+  <text x="274" y="244" class="minor">读出特征距离</text>
+  <path d="M274 254V275" class="wire" marker-end="url(#arrow)"/>
+  <rect class="score" x="112" y="278" width="239" height="34" rx="7"/>
+  <text x="231" y="301">距离放回网格 → 异常图</text>
+</svg>

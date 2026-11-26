@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>视觉算法复习室 · 马志成</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <style>
+    :root { color-scheme: light; --ink: #232726; --green: #2f6556; --paper: #fafaf8; --line: #d8ded8; --muted: #526159; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.55; }
+    main { max-width: 980px; margin: 0 auto; padding: 18px clamp(20px, 4vw, 48px) 64px; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; text-underline-offset: .2em; }
+    a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+    .back { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font-size: .9rem; }
+    header { padding: clamp(24px, 4vw, 42px) 0 28px; }
+    h1, h2, ul { margin: 0; }
+    h1 { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.2; letter-spacing: -.035em; }
+    .quick { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    .quick a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 7px; font-weight: 600; }
+    .quick a:first-child { color: #fff; background: var(--green); border-color: var(--green); }
+    .topics { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+    section { border-top: 2px solid var(--green); margin-top: 18px; }
+    section + section { margin-top: 28px; }
+    h2 { margin: 14px 0 7px; font-size: 1.16rem; }
+    ul { padding: 0; list-style: none; }
+    li { border-bottom: 1px solid var(--line); }
+    li a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 9px 2px; }
+    li a::after { content: "›"; color: var(--muted); font-size: 1.1rem; }
+    @media (max-width: 650px) {
+      main { padding-bottom: 40px; }
+      header { padding-bottom: 16px; }
+      .topics { display: block; }
+      section, section + section { margin-top: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="../">← 返回作品集</a>
+    <header>
+      <h1>视觉算法复习室</h1>
+      <nav class="quick" aria-label="复习快捷入口">
+        <a href="library/03_视觉任务体系/目标检测/交互图解/01_YOLO整体框架/index.html">YOLO 整体框架与演进</a>
+        <a href="library/03_视觉任务体系/目标检测/通用机制/训练调优与推理速度/index.html#practice">训练调优口述自测</a>
+      </nav>
+    </header>
+    <div class="topics">
+      <div>
+        <section aria-labelledby="models">
+          <h2 id="models">模型原理</h2>
+          <ul>
+            <li><a href="library/03_视觉任务体系/目标检测/模型原理/YOLOv1/index.html">YOLOv1 · 网格预测与损失</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/模型原理/YOLOv5/index.html">YOLOv5 · 先验框与版本辨识</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/交互图解/06_YOLOX/index.html">YOLOX · 检测头与样本分配</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/模型原理/YOLOv7/index.html">YOLOv7 · 训练与推理结构</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/模型原理/YOLOv8/index.html">YOLOv8 · 从多尺度特征到检测框</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/交互图解/02_YOLOv10/YOLOv10原理与演进.html">YOLOv10 · 双重分配与免 NMS 推理</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/模型原理/YOLO11/index.html">YOLO11 · 检测流程与版本对照</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/交互图解/04_YOLO26/YOLO26原理与演进.html">YOLO26 · 框回归与端到端检测</a></li>
+          </ul>
+        </section>
+      </div>
+      <div>
+        <section aria-labelledby="mechanisms">
+          <h2 id="mechanisms">检测机制</h2>
+          <ul>
+            <li><a href="library/03_视觉任务体系/目标检测/通用机制/特征提取与多尺度融合/index.html">特征提取与多尺度融合</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/交互图解/03_样本分配/样本分配与监督机制.html">样本分配与监督机制</a></li>
+            <li><a href="library/03_视觉任务体系/目标检测/交互图解/05_SimOTA与TAL/SimOTA与TAL样本分配.html">SimOTA 与 TAL 样本分配</a></li>
+          </ul>
+        </section>
+        <section aria-labelledby="training">
+          <h2 id="training">训练与评估</h2>
+          <ul>
+            <li><a href="library/03_视觉任务体系/目标检测/通用机制/训练调优与推理速度/index.html">训练调优与推理速度</a></li>
+            <li><a href="library/04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html">实验设计与结果判读</a></li>
+            <li><a href="library/04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html">优化器 · 从梯度到参数更新</a></li>
+          </ul>
+        </section>
+        <section aria-labelledby="anomaly">
+          <h2 id="anomaly">异常检测</h2>
+          <ul>
+            <li><a href="library/03_视觉任务体系/异常检测/交互图解/01_正常建模机制/工业异常检测原理与演进.html">工业异常检测 · 正常建模与方法对照</a></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="解释 YOLO26 渐进损失、STAL、TAL 与 MuSGD 的训练职责，连接样本分配和优化器拓展。包含可离线使用的权重与候选区域交互。">
+<title>YOLO26 · 原理与演进</title>
+<style>
+:root{color-scheme:light;--paper:#f6f4ed;--surface:#fffef9;--ink:#202e29;--muted:#58665f;--line:#d5dcd2;--green:#245b44;--soft:#e6eee2;--warm:#89501c;--warm-soft:#f3ead9;--radius:16px}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.9 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}a{color:var(--green);text-underline-offset:4px}a:hover{color:var(--warm)}button,input{font:inherit}button,summary,input[type=range]{cursor:pointer}button{border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);padding:9px 16px;min-height:44px;transition:background .18s,border-color .18s,color .18s}button:hover{background:var(--soft);border-color:var(--green)}button[aria-pressed=true]{background:var(--green);border-color:var(--green);color:var(--surface)}:focus-visible{outline:3px solid var(--warm);outline-offset:4px}[hidden]{display:none!important}.wrap{width:min(1160px,calc(100% - 64px));margin:auto}.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 24px;padding:20px 0;border-bottom:1px solid var(--line);font-size:13px}.top a{display:inline-flex;align-items:center;min-height:44px}.eyebrow{font-size:12px;letter-spacing:.12em;font-weight:700;color:var(--green);margin:0 0 12px}h1,h2{font-family:"Noto Serif CJK SC","Source Han Serif SC","SimSun",serif;line-height:1.4}h1{font-size:clamp(38px,5vw,60px);margin:0 0 28px;letter-spacing:-.025em}h2{font-size:clamp(27px,3vw,35px);margin:0 0 24px}h3{font-size:21px;line-height:1.5;margin:28px 0 14px}h4{font-size:17px;line-height:1.6;margin:0 0 10px}p{margin:0 0 18px}.hero{padding:56px 0 40px;max-width:920px}.lead{font-size:21px;line-height:1.9;max-width:850px}.scope,.small{font-size:13px;color:var(--muted)}.hero .scope{max-width:820px}.causal-route{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line);margin:30px 0 0}.causal-route a{padding:16px 20px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-decoration:none;font-size:15px}.causal-route span{font:12px Consolas,"Microsoft YaHei",monospace;display:block;color:var(--muted);margin-bottom:3px}.causal-route a:hover{background:var(--soft)}.layout{display:grid;grid-template-columns:154px minmax(0,1fr);gap:46px;align-items:start;padding-top:18px}.toc{position:sticky;top:24px;font-size:13px}.toc a{display:block;padding:10px 0;text-decoration:none;color:var(--muted);border-bottom:1px solid var(--line)}.toc a:hover,.toc a[aria-current=location]{color:var(--green);font-weight:700}.content{min-width:0}.chapter{padding:36px 0 48px;border-top:1px solid var(--line)}.chapter>p{max-width:840px}.chapter-number{font:12px/1.5 Consolas,"Microsoft YaHei",sans-serif;color:var(--green);letter-spacing:.08em;margin-bottom:13px}.core{font-size:19px;line-height:1.9}.boundary{font-size:14px;color:var(--warm);padding-top:15px;border-top:1px solid var(--line);margin-top:24px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:24px 0}.pair>div{padding:20px;background:var(--soft);border-radius:10px}.pair h3{margin:0 0 10px;font-size:18px}.pair p{font-size:15px;margin:0}.formula{background:var(--soft);padding:20px 24px;border-radius:10px;margin:22px 0;font:20px/1.9 Georgia,"SimSun",serif;text-align:center;overflow-wrap:anywhere}.formula .symbol-line{display:block}.formula .small{display:block;text-align:left;font-family:"Microsoft YaHei",sans-serif;margin-top:12px}.formula sub{font-size:.7em}.table-scroll{overflow-x:auto;margin:22px 0}table{border-collapse:collapse;width:100%;text-align:left;font-size:14px;font-variant-numeric:tabular-nums}caption{text-align:left;font-size:13px;color:var(--muted);margin-bottom:12px}th,td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-weight:600}thead th{white-space:nowrap}.overview-table{min-width:540px}.evidence-table{min-width:520px}.evidence-table .selected th,.evidence-table .selected td{background:var(--soft)}details{border-top:1px solid var(--line);padding:16px 0}summary{font-weight:600;min-height:44px;padding:5px 2px;align-content:center}details[open]>summary{margin-bottom:14px}details p{font-size:15px}code,pre{font-family:Consolas,"Microsoft YaHei",monospace}code{font-size:.93em}pre{font-size:13px;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--soft);padding:18px;border-radius:10px}.source-ref{font-size:13px}.demo{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);margin:28px 0;overflow:hidden}.demo-head{padding:22px 24px 16px}.demo-head h3{margin:0 0 8px}.demo-head p{font-size:13px;color:var(--muted);margin:0}.switch{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.demo-body{border-top:1px solid var(--line);padding:24px}.control-label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;font-size:15px}.control-label output{font-variant-numeric:tabular-nums;color:var(--green);font-weight:700}input[type=range]{width:100%;display:block;min-height:44px;margin:0;accent-color:var(--green)}.range-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:-3px}.weight-legend{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 22px;margin:26px 0 12px;font-size:15px;font-variant-numeric:tabular-nums}.legend-item{display:flex;align-items:center;gap:8px}.swatch{height:12px;width:12px;border-radius:2px;background:var(--green);flex:none}.swatch.one{background:var(--warm)}figure{margin:0}.weight-bar{display:flex;height:38px;background:var(--soft);overflow:hidden;border-radius:5px}.weight-segment{height:100%;transform-origin:left;transition:flex-basis .16s ease;min-width:0}.weight-segment.many{background:var(--green);flex-basis:80%}.weight-segment.one{background:var(--warm);flex-basis:20%}.bar-caption{font-size:13px;color:var(--muted);margin-top:10px}.schedule-line{padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:18px;line-height:1.85;margin:20px 0;font-variant-numeric:tabular-nums}.stage-note{font-size:15px;min-height:86px;margin:18px 0 0}.demo-foot{padding:15px 24px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}.demo details{margin-top:18px;padding-bottom:0}.example-result{font-size:17px;margin-top:12px;font-variant-numeric:tabular-nums}.steps{padding-left:23px}.steps li{padding-left:3px;margin-bottom:18px}.steps li p{font-size:15px;margin:5px 0}.gradient-pair>div{background:none;border:1px solid var(--line)}.gradient-pair ul{font-size:15px;padding-left:20px;margin:8px 0 0}.gradient-pair li{margin:8px 0}.gradient-pair .path{color:var(--warm);font-size:14px;margin-top:16px}.source-list{padding-left:22px;font-size:14px}.source-list li{margin-bottom:15px;overflow-wrap:anywhere}.reading-order{padding-left:23px}.reading-order li{margin-bottom:14px}footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:13px;margin-top:24px}footer p{max-width:840px}.skip-link{position:absolute;left:20px;top:-90px;padding:12px;background:var(--surface);z-index:10}.skip-link:focus{top:8px}.no-script{background:var(--warm-soft);padding:18px;font-size:14px}
+.spatial-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center;margin-top:20px}.spatial-figure{width:100%;max-width:360px;margin:auto}.spatial-figure svg{display:block;width:100%;height:auto}.spatial-figure text{font:14px "Microsoft YaHei",sans-serif;fill:var(--muted)}.spatial-grid-line{stroke:var(--line);stroke-width:1}.spatial-gt{fill:none;stroke:var(--green);stroke-width:2.5}.spatial-window{fill:none;stroke:var(--warm);stroke-width:2;stroke-dasharray:6 4}.spatial-point{fill:var(--surface);stroke:var(--muted);stroke-width:1.5}.spatial-point.eligible{fill:var(--green);stroke:var(--green)}.spatial-legend{font-size:13px;color:var(--muted);margin-top:12px}.spatial-readout{padding:18px;background:var(--soft);border-radius:10px;font-size:15px}.spatial-readout p:last-child{margin-bottom:0}.spatial-count{font-size:23px;color:var(--green);font-variant-numeric:tabular-nums}.spatial-controls{display:grid;grid-template-columns:1fr 1fr;gap:20px}.spatial-count-table{min-width:470px}
+@media(max-width:980px){.spatial-grid{grid-template-columns:1fr}.spatial-controls{grid-template-columns:1fr;gap:8px}}
+@media(max-width:1040px){.wrap{width:calc(100% - 40px)}.layout{grid-template-columns:125px minmax(0,1fr);gap:28px}}
+@media(max-width:760px){.wrap{width:calc(100% - 32px)}.top{padding:12px 0;font-size:12px}.hero{padding:38px 0 30px}h1{font-size:40px}.lead{font-size:18px}.layout{display:block;padding-top:0}.toc{position:static;display:flex;flex-wrap:wrap;gap:0 18px;margin-bottom:22px}.toc>p{display:none}.toc a{font-size:12px;padding:9px 0;min-height:44px}.chapter{padding:30px 0 34px}h2{font-size:29px}.causal-route{grid-template-columns:1fr}.causal-route a{padding:12px 16px}.pair{grid-template-columns:1fr;gap:16px}.pair>div{padding:18px}.demo-head,.demo-body,.demo-foot{padding-left:18px;padding-right:18px}.demo-head h3{font-size:20px}.switch button{font-size:13px;padding:9px 12px}.weight-legend{font-size:14px}.schedule-line{font-size:16px}.formula{font-size:18px;padding:18px}.core{font-size:18px}th,td{padding:10px 8px}.stage-note{min-height:0}.overview-table,.evidence-table{font-size:13px}footer{padding-bottom:24px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
+@media print{body{background:white}.wrap{width:100%}.layout{display:block}.toc,.causal-route,.switch,input[type=range],.range-ends{display:none}.hero{padding-top:20px}h1{font-size:34px}.chapter{padding:20px 0}.pair{break-inside:avoid}a{color:inherit}.table-scroll{overflow:visible}table{min-width:0!important}}
+</style>
+<link rel="stylesheet" href="../../../../共用阅读组件/term-cards.css">
+<script src="../01_YOLO整体框架/terms-yolo.js" defer></script>
+<script src="../../../../04_数据与训练体系/交互图解/共用图解/terms-training.js" defer></script>
+<script src="../../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head>
+<body><div class="review-back"><a href="../../../../../index.html">← 复习目录</a></div>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="top wrap"><span>视觉任务体系 / 目标检测 / YOLO26</span><a href="../01_YOLO整体框架/index.html#compare">回到 YOLO 系列总览</a><a href="../02_YOLOv10/YOLOv10原理与演进.html">回看 YOLOv10 原理与演进</a></header>
+<main id="main" class="wrap">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">YOLO26 · 原理与演进</p>
+    <h1 id="page-title">让早期训练获得丰富监督，<br>让后期优化更贴近推理。</h1>
+    <p class="lead">双分支检测器通过<span data-term="many">一对多</span>补充监督，通过<span data-term="one">一对一</span>学习无需非极大值抑制（<span data-term="nms">NMS</span>）的输出。两条分支的职责不同，在训练各阶段的作用也不同。YOLO26 的渐进损失据此调整分支权重，使优化重点从早期的丰富监督，逐渐转向端到端推理使用的一对一分支。</p>
+    <p class="scope">本页详述渐进损失、小目标感知标签分配（<span data-term="stal">STAL</span>）与混合优化器 MuSGD，说明它们如何衔接双分支训练。交互计算分支权重、示例加权损失与空间候选资格，不运行神经网络训练。<a href="#musgd">查看 MuSGD 怎样更新参数 →</a></p>
+    <p class="term-help">带点线的词可悬停查看释义；点按可固定，再点一次或按 Esc 收起。</p>
+    <p class="scope">前置机制可回看 <a href="../06_YOLOX/index.html">YOLOX 的结构、预测与监督</a>；训练辅助路径怎样服务部署，见<a href="../01_YOLO整体框架/index.html#training-deployment">跨版本结构对照</a>。这里接续已有原理，不把版本号视为全部设计的累加。</p>
+    <nav class="causal-route" aria-label="渐进损失的解释顺序"><a href="#problem"><span>01 · 原问题</span>双分支为什么还需要调整训练重点</a><a href="#progressive-loss"><span>02 · 解决方案</span>损失权重怎样随训练进度变化</a><a href="#training"><span>03 · 机制与验证</span>权重影响哪里，实验支持什么</a></nav>
+  </section>
+  <div class="layout">
+    <aside class="toc" aria-label="页内目录"><p class="eyebrow">本页目录</p><a href="#position">模型定位</a><a href="#problem">原问题与动机</a><a href="#progressive-loss">渐进损失交互</a><a href="#training">执行与梯度路径</a><a href="#stal">STAL 候选窗口</a><a href="#assignment">TAL 与分支匹配</a><a href="#musgd">MuSGD 参数更新</a><a href="#evidence">消融与适用边界</a><a href="#sources">原文与实现</a></aside>
+    <div class="content">
+      <section id="position" class="chapter" aria-labelledby="position-title">
+        <p class="chapter-number">00 / 先确定改动的位置</p><h2 id="position-title">结构以 YOLO11 为基础，<br>端到端训练衔接 YOLOv10 的思路。</h2>
+        <p>YOLO26 是 Ultralytics 的实时视觉模型系列。论文以 YOLO11 为结构基础，同时采用与 YOLOv10 相关的双分支、一致标签分配思路，支持非极大值抑制（NMS）之外的端到端输出路径。结构来源与监督设计的联系需要分别判断。</p>
+      <figure class="network-figure"><img src="../../通用机制/特征提取与多尺度融合/assets/network-26.svg" width="360" height="374" loading="lazy" alt="YOLO11式C3k2主干与深层SPPF和C2PSA，跨尺度融合供给一对多和一对一检测头。两头均直接预测边距；辅助损失逐渐减重，免 NMS 路径用一对一头。"><figcaption><strong>YOLO26 · 常规检测</strong> <span>对比 v10 时，先看两头预测什么：v10 用离散边距分布，YOLO26 直接回归边距。渐进损失属于训练，不是新增推理层。</span> <a href="https://github.com/ultralytics/ultralytics/blob/v8.4.0/ultralytics/cfg/models/26/yolo26.yaml" target="_blank" rel="noreferrer">v8.4.0 配置</a></figcaption></figure>
+      <p class="scope">图中展示的是论文的端到端路径。在当前官方文档中，常规预测与验证默认走一对多加 NMS；要比较端到端延迟，应明确选择一对一，并核对导出后端。<a href="https://docs.ultralytics.com/guides/end2end-detection/">查看官方部署口径</a> · <a href="../../模型原理/YOLO11/index.html#decision">与 YOLO11 比较时怎样选</a>。</p>
+        <p>其目标是兼顾检测能力、推理效率与部署简洁性。主要改动分布在框的输出表示、分支损失组合、候选筛选和参数更新四个环节。</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="YOLO26 主要设计的职责对照，可横向滚动"><table class="overview-table"><caption>按解决的问题定位设计；本页展开渐进损失、STAL 与 MuSGD</caption><thead><tr><th scope="col">设计环节</th><th scope="col">对应问题</th><th scope="col">改动方向</th></tr></thead><tbody>
+          <tr><th scope="row">框的输出表示</th><td>离散分布回归增加检测头与解码开销，并受到分布取值范围限制。</td><td>移除分布焦点损失（DFL），采用直接框回归。</td></tr>
+          <tr><th scope="row">双分支损失组合</th><td>固定权重未充分区分训练早期与后期的需求。</td><td><a href="#progressive-loss">渐进损失：随训练调整一对多与一对一的权重。</a></td></tr>
+          <tr><th scope="row">小目标候选筛选</th><td>极小真实框内可能没有特征参考点，无法提供正候选。</td><td><a href="#stal">小目标感知标签分配（STAL）调整候选筛选范围，回归仍使用原始真实框。</a></td></tr>
+          <tr><th scope="row">参数更新</th><td>梯度更新可能集中在少数矩阵模式上；训练还需兼顾稳定性与成本。</td><td><a href="#musgd">MuSGD：在适用权重上组合 Muon 与动量随机梯度下降（SGD）。</a></td></tr>
+        </tbody></table></div>
+        <p class="source-ref">依据：<a href="https://arxiv.org/html/2606.03748v1#S3" target="_blank" rel="noreferrer">YOLO26 论文 §3</a>。检测以外的任务扩展属于另一组设计，不据名称推断所有任务具有相同检测头或损失。</p>
+        <details id="release-status"><summary>模型发布状态与本文范围（核对日期：2026-11-03）</summary><p>在 Ultralytics 通用模型系列中，YOLO26 是已正式发布、可结合作者论文与公开实现核对的模型。YOLO27 当时仍处于预览阶段，代码与权重尚未公开。YOLO 存在不同团队维护的分支，不能仅按名称中的数字认定统一的继承关系。</p><p class="source-ref"><a href="https://docs.ultralytics.com/models/" target="_blank" rel="noreferrer">官方模型目录</a> · <a href="https://docs.ultralytics.com/models/yolo27/" target="_blank" rel="noreferrer">YOLO27 预览状态</a>。此处为指定日期的状态说明，不代表未来发布情况。</p></details>
+      </section>
+
+      <section id="problem" class="chapter" aria-labelledby="problem-title">
+        <p class="chapter-number">01 / 丰富监督与端到端输出，仍有阶段性差异</p><h2 id="problem-title">两个分支都参与训练，<br>为何不始终采用相同权重？</h2>
+        <p>一对多分配允许多个候选预测学习同一真实目标，因此提供较丰富的正监督。一对一分支使用更严格的对应关系，学习用于免 NMS 推理的输出。双分支设计兼顾了这两种需求，但尚需确定：不同训练阶段，各分支的损失应在总目标中占多大权重。</p>
+        <div class="pair"><div><h3>训练初期：先建立检测能力</h3><p>特征表达与候选预测尚不充分。一对多提供较丰富的正监督，有利于建立共享特征与基本检测能力。</p></div><div><h3>训练后期：更重视部署分支</h3><p>端到端部署最终使用一对一分支。随着训练推进，需要充分优化这条输出路径，使训练重点更贴近实际推理需求。</p></div></div>
+        <p>作者认为，始终采用固定且相同的分支权重，没有充分利用这种优化上的不对称性，可能使推理分支优化不足。因此，YOLO26 采用渐进损失（Progressive Loss），逐步降低一对多权重、提高一对一权重。</p>
+        <p class="core">渐进损失的核心作用，是根据训练阶段调整双分支的优化重点。两条分支持续接受监督，变化的是它们的损失如何参与总目标。</p>
+        <p class="source-ref">问题背景与方案依据：<a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS2" target="_blank" rel="noreferrer">论文 §3.3.2</a>。双重分配的基础见 <a href="../02_YOLOv10/YOLOv10原理与演进.html#dual">YOLOv10 双分支职责</a>；分配怎样构造监督目标，见 <a href="../03_样本分配/样本分配与监督机制.html#training-data">样本分配与损失</a>。</p>
+      </section>
+
+      <section id="progressive-loss" class="chapter" aria-labelledby="progressive-title">
+        <p class="chapter-number">02 / 保留各自监督，调整组合权重</p><h2 id="progressive-title">从早期的一对多为重，<br>逐渐转向一对一为重。</h2>
+        <p>两条分支分别完成样本分配、目标构造与损失计算，得到一对多损失和一对一损失。渐进损失在组合两者时，使用随训练进度变化的权重：</p>
+        <div class="formula" aria-label="总损失等于一对多权重乘一对多损失，加上一对一权重乘一对一损失"><span class="symbol-line">L<sub>总</sub> = w<sub>一对多</sub>(t) L<sub>一对多</sub></span><span class="symbol-line">+ w<sub>一对一</sub>(t) L<sub>一对一</sub></span><span class="small">t 表示当前训练轮次；两个 w 分别是分支损失的加权系数，且两者之和为 1。L<sub>一对多</sub>、L<sub>一对一</sub> 是各分支按自身检测损失规则计算后的结果。分支权重与匹配度量中的分类、定位指数是不同参数。</span></div>
+        <p>论文默认从 <strong>一对多 0.8、一对一 0.2</strong>，线性调整到 <strong>一对多 0.1、一对一 0.9</strong>，按训练轮次更新。两条分支从开始就参与训练，一对多分支在后期也没有被完全关闭。</p>
+        <div class="demo" id="schedule-demo">
+          <div class="demo-head"><h3>训练进度怎样改变损失权重？</h3><p>拖动进度，比较论文默认调度与固定等权参照。条形长度表示系数大小，不表示真实损失贡献、梯度占比或精度。</p><div class="switch" id="schedule-modes" role="group" aria-label="选择分支损失权重方案"><button type="button" data-mode="progressive" aria-pressed="true">渐进权重 · 论文默认</button><button type="button" data-mode="fixed" aria-pressed="false">固定等权 · 消融参照</button></div></div>
+          <div class="demo-body">
+            <div class="control-label"><label for="training-progress">归一化训练进度</label><output id="progress-value" for="training-progress">0%</output></div>
+            <input id="training-progress" type="range" min="0" max="100" step="1" value="0" aria-describedby="progress-help">
+            <div class="range-ends" aria-hidden="true"><span>起点 0%</span><span>中点 50%</span><span>终点 100%</span></div>
+            <p id="progress-help" class="small" style="margin:12px 0 0">0% 和 100% 分别表示线性权重调度的两个端点；本演示不指定训练总轮数，也不表示模型能力随进度线性增长。</p>
+            <figure aria-labelledby="weight-caption">
+              <div class="weight-legend"><div class="legend-item"><span class="swatch" aria-hidden="true"></span><span>一对多权重 <strong id="many-weight">0.800</strong></span></div><div class="legend-item"><span class="swatch one" aria-hidden="true"></span><span>一对一权重 <strong id="one-weight">0.200</strong></span></div></div>
+              <div class="weight-bar" role="img" id="weight-bar" aria-label="一对多权重百分之80，一对一权重百分之20"><div id="many-segment" class="weight-segment many" aria-hidden="true"></div><div id="one-segment" class="weight-segment one" aria-hidden="true"></div></div>
+              <figcaption id="weight-caption" class="bar-caption">同一条形总长度为 1；颜色与文字共同区分两条分支。</figcaption>
+            </figure>
+            <p id="live-formula" class="schedule-line">L总 = 0.800 × L一对多 + 0.200 × L一对一</p>
+            <p id="schedule-explanation" class="stage-note" role="status">当前为渐进调度起点。一对多获得较高权重，一对一仍以非零权重参与训练。</p>
+            <details id="weighted-example"><summary>展开：系数与实际损失贡献有何区别？</summary><p>固定假设 L<sub>一对多</sub> = 4、L<sub>一对一</sub> = 2，仅演示加权计算。两份损失保持不变；拖动进度只改变系数。</p><p id="example-result" class="example-result">3.200 + 0.400 = 3.600</p><p class="small">实际损失贡献取决于“系数 × 分支损失”，不能只看系数。总值随拖动变化，不表示模型学得更好、损失已经收敛或检测精度提高。</p></details>
+          </div>
+          <div class="demo-foot">线性插值示例：归一化进度为 u 时，w<sub>一对多</sub> = 0.8 − 0.7u，w<sub>一对一</sub> = 1 − w<sub>一对多</sub>。固定等权始终为 0.5 / 0.5。页面不运行分配器、反向传播或参数更新。</div>
+        </div>
+        <details id="schedule-formula"><summary>展开：论文轮次公式与代码变量如何对应？</summary><p>在两个默认端点之间，论文采用线性调度。设总轮数为 E、当前轮次为 t：</p><pre>w一对多(t) = max(1 − t / max(E − 1, 1), 0) × (0.8 − 0.1) + 0.1
+w一对一(t) = 1 − w一对多(t)</pre><p>交互中的 u 是端点间的归一化进度。实际训练按轮次更新系数，不是页面上每拖动 1% 就执行一次训练。精确更新时点以训练循环调用为准。</p><p><code>E2ELoss</code> 中，<code>o2m</code>、<code>o2o</code> 分别表示一对多、一对一损失系数；<code>final_o2m</code> 为一对多终点系数。它们不是正样本数量或目标类别分数。</p></details>
+        <p class="source-ref">默认设置与线性公式：<a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS2" target="_blank" rel="noreferrer">论文 §3.3.2</a>、<a href="https://arxiv.org/html/2606.03748v1#S4.SS1" target="_blank" rel="noreferrer">§4.1</a>；对应 <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py#L1187-L1216" target="_blank" rel="noreferrer">E2ELoss 初始化、组合与调度</a>。</p>
+      </section>
+
+      <section id="training" class="chapter" aria-labelledby="training-title">
+        <p class="chapter-number">03 / 将权重放回一次训练迭代</p><h2 id="training-title">分配决定监督责任，<br>渐进损失决定分支权重。</h2>
+        <ol class="steps">
+          <li><strong>前向计算产生两组预测。</strong><p>主干特征提取网络与特征融合网络提供多尺度特征，两套检测头分别产生一对多与一对一预测。</p></li>
+          <li><strong>分别建立预测与真实标注的对应。</strong><p>两条分支按各自分配设置构造监督。损失系数提高，不会自动增加被选为正样本的预测数量。</p></li>
+          <li><strong>计算两份分支损失。</strong><p>框与类别等单项监督先按各分支的损失规则组织，得到 L<sub>一对多</sub> 和 L<sub>一对一</sub>。它们并不是正样本数的简单求和。</p></li>
+          <li><strong>使用当前轮次的系数组合。</strong><p>总目标为 w<sub>一对多</sub>L<sub>一对多</sub> + w<sub>一对一</sub>L<sub>一对一</sub>。同一轮次内的训练批次沿用相应调度系数。</p></li>
+          <li><strong>反向传播，再由优化器更新参数。</strong><p>系数缩放对应可求导路径上的梯度；哪些参数能收到该分支的梯度，还由计算图及停止梯度操作决定。</p></li>
+        </ol>
+        <p class="source-ref">分配如何落到掩码、框与类别目标：<a href="../03_样本分配/样本分配与监督机制.html#training-data">样本分配与监督机制</a>。YOLO26 的具体分配设置需要结合自身实现，不能把 YOLOv10 的全部参数原样套用。</p>
+        <h3 id="gradient-path">权重增大，并不改变梯度能否通过的路径</h3>
+        <p>当前核对的官方普通检测实现中，一对一头读取 <code>xi.detach()</code> 形成的特征。它的损失仍可训练一对一检测头自身参数，但不直接回传到共享的主干与特征融合网络。</p>
+        <div class="pair gradient-pair"><div><h3>一对多分支</h3><ul><li>读取可回传梯度的共享特征。</li><li>损失影响一对多头与共享网络。</li><li>该路径的梯度受一对多损失系数缩放。</li></ul><p class="path">L一对多 → 一对多头 → 共享网络</p></div><div><h3>一对一分支</h3><ul><li>读取经过停止梯度处理的共享特征。</li><li>损失更新一对一头自身参数。</li><li>提高权重不会解除停止梯度。</li></ul><p class="path">L一对一 → 一对一头；到共享网络的梯度被阻断</p></div></div>
+        <p>对所列双分支普通检测路径而言，可以进一步写成：</p><div class="formula"><span class="symbol-line">∇<sub>θ共享</sub>L<sub>总</sub> = w<sub>一对多</sub> ∇<sub>θ共享</sub>L<sub>一对多</sub></span><span class="symbol-line">∇<sub>θ一对一头</sub>L<sub>总</sub> = w<sub>一对一</sub> ∇<sub>θ一对一头</sub>L<sub>一对一</sub></span><span class="small">θ 表示相应部分的参数，∇ 表示损失对参数的梯度。这里仅展示分支损失在所述计算图中的路径，不包含优化器的动量、权重衰减等更新细节。</span></div>
+        <p class="boundary">一对一权重为 0.9，不表示它更新 90% 的参数，也不保证实际梯度贡献为 90%。它表示该分支损失乘以 0.9；梯度大小还取决于分支损失本身、参数与计算图。</p>
+        <p class="source-ref">依据：<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/head.py#L180-L183" target="_blank" rel="noreferrer">Detect.forward 中的一对一输入与 detach</a>；<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py#L1201-L1216" target="_blank" rel="noreferrer">E2ELoss 的损失加权</a>。以上限定为所列实现，不推定所有端到端检测器均有同样梯度路径。</p>
+      </section>
+
+      <section id="stal" class="chapter" aria-labelledby="stal-title">
+        <p class="chapter-number">04 / 先有有效候选，才能比较匹配质量</p><h2 id="stal-title">目标太小，可能连参与匹配的<br>预测位置都没有。</h2>
+        <p>任务对齐样本分配（<span data-term="tal">TAL</span>）先检查预测位置的参考点是否位于真实标注框（<span data-term="gt">GT</span>）内部，再根据分类与定位质量选择正样本。参考点由特征网格和<span data-term="stride">步长</span>确定，不等于网络回归出的预测框中心。</p>
+        <p>参考点是离散排列的。一个很小的 GT 可能落在相邻参考点之间，导致框内没有有效位置。此时，即使设置了 Top-10，数量规则也不能凭空创造合格候选。这是 STAL 首先要修正的问题。</p>
+        <h3>保持 GT 不变，单独调整用于筛选的区域</h3>
+        <p>STAL 以 GT 中心为中心，按宽、高分别判断是否需要补足候选范围。临时候选窗口只决定哪些参考点能够参与匹配；匹配评分、最终监督目标和框回归仍使用原始 GT。它不根据当前预测框是否很小来触发。</p>
+        <div class="formula"><span class="symbol-line">候选资格：参考点是否位于临时候选窗口内</span><span class="symbol-line">定位监督：预测框仍然拟合原始 GT</span><span class="small">取得候选资格，不等于自动成为正样本，也不等于获得更高损失权重。后续仍需经过 TAL 评分、数量筛选与冲突处理。</span></div>
+        <div class="demo" id="stal-demo">
+          <div class="demo-head"><h3>同一个 GT，候选窗口改变了什么？</h3><p>仅显示步长 8 的局部网格，GT 中心固定为输入图坐标 (24, 24)。实心圆表示具有空间候选资格的参考点；圆点不是完整预测框，也不是已经选出的正样本。</p><div class="switch" id="stal-modes" role="group" aria-label="选择候选区域规则"><button type="button" data-stal="tal" aria-pressed="false">普通 TAL</button><button type="button" data-stal="paper" aria-pressed="true">STAL · 论文规则</button><button type="button" data-stal="code" aria-pressed="false">STAL · 当前实现</button></div></div>
+          <div class="demo-body">
+            <div class="spatial-controls"><div><div class="control-label"><label for="gt-width">原始 GT 宽度</label><output id="gt-width-value" for="gt-width">4 px</output></div><input id="gt-width" type="range" min="2" max="30" value="4" step="1"></div><div><div class="control-label"><label for="gt-height">原始 GT 高度</label><output id="gt-height-value" for="gt-height">5 px</output></div><input id="gt-height" type="range" min="2" max="30" value="5" step="1"></div></div>
+            <div class="spatial-grid"><figure class="spatial-figure"><svg id="stal-grid" viewBox="0 0 300 300" role="img" aria-labelledby="stal-grid-title stal-grid-desc"><title id="stal-grid-title">GT、候选窗口与步长 8 的参考点</title><desc id="stal-grid-desc">原始 GT 为 4×5 像素；论文规则的候选窗口为 16×16 像素，包含 4 个参考点。</desc><g id="stal-grid-lines"></g><rect id="stal-window" class="spatial-window" x="110" y="110" width="80" height="80"></rect><rect id="stal-gt" class="spatial-gt" x="140" y="137.5" width="20" height="25"></rect><g id="stal-points"></g></svg><figcaption class="spatial-legend">绿色实线：原始 GT；棕色虚线：候选窗口。实心圆：有资格；空心圆：无资格。坐标单位为输入图像素。</figcaption></figure><div class="spatial-readout" role="status"><p id="stal-dimensions">原始 GT：4 × 5 px<br>候选窗口：16 × 16 px</p><p>该层具有候选资格的参考点：<strong id="stal-count" class="spatial-count">4</strong> 个</p><p id="stal-explanation">宽和高都小于最小步长 8，因此论文规则将候选窗口的两边分别设为 16。回归目标仍是 4 × 5 px。</p></div></div>
+          </div>
+          <div class="demo-foot">本演示只计算空间资格，不计算匹配分数、最终正样本数或检测精度。真实检测会汇总多个预测层的候选；这里仅取一个局部网格解释几何关系。参考点位于边界上时不计入内部。</div>
+        </div>
+        <details id="stal-version"><summary>论文与当前代码的尺寸规则有什么差别？（核对日期：2026-11-03）</summary><p>论文 §3.3.3 的公式：某条 GT 边长小于最小预测步长时，将候选窗口的对应边长设为参考尺寸。步长为 8、16、32 时，即 <code>d &lt; 8 → 16</code>；宽和高独立处理。因此 4×5 对应 16×16，4×30 对应 16×30，而 12×12 保持不变。</p><p>当前官方 main 的普通水平框实现：某条边长小于第二级步长时，将其补足到该步长。默认表现为 <code>d &lt; 16 → 16</code>；因此 12×12 也会得到 16×16 的候选窗口。两者保持 GT 中心和回归目标不变，但触发范围不同。本页明确区分两种口径，不将它们写成完全一致。</p><p class="source-ref"><a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS3" target="_blank" rel="noreferrer">论文公式 (4)—(6)</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/tal.py#L293-L321" target="_blank" rel="noreferrer">当前 select_candidates_in_gts</a>。main 会继续变化，复现时应固定代码版本与模型步长。</p></details>
+        <h3 id="assignment">有了候选资格，后面仍然怎样选择？</h3>
+        <p>STAL 补充的是 TAL 的空间筛选规则。进入候选集合后，仍按分类分数与定位质量的组合排序，再根据分支设置选择。一对多提供丰富监督，一对一服务于免 NMS 输出；它们不是先选定小、中、大中的某一个尺度，再只训练这个尺度。</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="YOLOv10 与 YOLO26 分支分配设置，可横向滚动"><table class="spatial-count-table"><caption>普通水平框检测的指定实现；Top-k 是筛选设置，不保证每个 GT 最终恰好获得 k 个正样本</caption><thead><tr><th scope="col">模型与路径</th><th scope="col">数量设置</th><th scope="col">候选资格</th></tr></thead><tbody><tr><th scope="row">YOLOv10 · 一对多 / 一对一</th><td>Top-10 / Top-1</td><td>原始 GT 内部参考点；原版未使用 STAL。</td></tr><tr><th scope="row">YOLO26 · 一对多</th><td>Top-10</td><td>使用 STAL 调整后的空间筛选范围。</td></tr><tr><th scope="row">YOLO26 · 一对一</th><td>先 Top-7，再保留 1 个</td><td>先形成候选，处理多 GT 争用，再执行二次 Top-1 筛选。</td></tr></tbody></table></div>
+        <p>这里的 10、7 和 1 都是预设的筛选数量；SimOTA 则通过候选 IoU 估计每个 GT 本轮的 Dynamic-k。二者都使用 Top-k 操作，但数量规则与排序依据不同。预设 k 也不意味着静态分配：预测改变后，被选中的位置仍会改变。</p>
+        <p><a href="../05_SimOTA与TAL/SimOTA与TAL样本分配.html">拓展：SimOTA 与 TAL 怎样确定候选、排序和数量 →</a></p>
+        <p class="core">STAL 决定小目标有哪些位置能参与匹配；TAL 决定哪些预测更适合负责目标；渐进损失决定两份分支损失在不同阶段怎样组合。三者作用于训练链条的不同环节。</p>
+        <p class="source-ref">分支设置：<a href="https://github.com/THU-MIG/yolov10/blob/main/ultralytics/utils/loss.py#L640-L650" target="_blank" rel="noreferrer">YOLOv10 原版 v10DetectLoss</a> · <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py#L1187-L1192" target="_blank" rel="noreferrer">YOLO26 当前 E2ELoss</a>。二次筛选顺序：<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/tal.py#L323-L352" target="_blank" rel="noreferrer">select_highest_overlaps</a>。</p>
+        <h3>候选范围是否越大越好？</h3>
+        <p>候选范围太小可能漏掉有效位置，过大也会改变原有空间约束。论文表 6 在 YOLO11s 基础配置、COCO 数据上比较参考尺寸：</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="STAL 参考尺寸消融结果，可横向滚动"><table class="evidence-table" id="stal-evidence"><caption>作者论文表 6；AP 为平均精度，AP_S 为小目标平均精度。报告值未在本地复现。</caption><thead><tr><th scope="col">方案</th><th scope="col">参考尺寸 / px</th><th scope="col">AP</th><th scope="col">AP_S</th></tr></thead><tbody><tr><th scope="row">普通 TAL</th><td>—</td><td>46.6</td><td>29.0</td></tr><tr><th scope="row">STAL</th><td>8</td><td>46.6</td><td>27.7</td></tr><tr class="selected"><th scope="row">STAL · 默认参考尺寸</th><td>16</td><td>46.8</td><td>29.6</td></tr><tr><th scope="row">STAL</th><td>32</td><td>46.5</td><td>28.3</td></tr></tbody></table></div>
+        <p>该实验支持参考尺寸 16 在所测配置中的作用，并不支持无限扩大窗口。它也没有直接比较 SimOTA 与 TAL，不能据此认定 TAL 在所有任务中更优。</p>
+        <p class="boundary">空间候选增多不保证最终匹配成功或精度提高；仍受预测质量、数量规则与 GT 冲突影响。表 6 与前面的渐进损失表 5 是不同对照，不将两项增益直接相加。</p>
+        <p class="source-ref"><a href="https://arxiv.org/html/2606.03748v1#S4.SS3.SSS4" target="_blank" rel="noreferrer">论文 §4.3.4、表 6</a> · <a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html#ablation">怎样判断消融结果支持什么</a>。</p>
+      </section>
+
+      <section id="musgd" class="chapter" aria-labelledby="musgd-title">
+        <p class="chapter-number">05 / 损失产生梯度，优化器决定怎样更新参数</p><h2 id="musgd-title">保留动量 SGD 的更新，<br>再引入矩阵结构上的调整。</h2>
+        <p>梯度下降根据损失对参数的梯度更新权重。带动量的 SGD 将当前与历史梯度累积起来，形成近期梯度趋势。对于一个权重矩阵，这些趋势仍按对应权重的位置排列，并非把历次梯度逐行存入矩阵。</p>
+        <h3>已有更新还存在什么问题？</h3>
+        <p>动量解决了怎样利用历史梯度的问题，但不专门均衡同一矩阵中不同奇异模式的强度。当更新主要集中在少数模式上时，其他模式的相对更新可能很小。Muon 据此对动量形成的待更新矩阵进行近似正交化，重新调整各模式的相对尺度。</p>
+        <p>这里的“模式”是整个矩阵的一种数值变化模式；强弱由对应的奇异值大小描述，不代表某个目标类别、某个权重的重要性，也不保证弱模式一定包含有用信息。这是方法动机，不是所有检测任务都存在同样问题的结论。</p>
+        <h3>YOLO26 怎样使用 Muon？</h3>
+        <p>MuSGD 将 Muon 与动量 SGD 组合起来。当前核对的官方实现让二维线性权重、四维卷积核接收两种更新，一维偏置与归一化缩放等参数使用 SGD。卷积核先展平成矩阵计算 Muon 更新，再还原到原来的形状；不会给推理网络增加新层。</p>
+        <div class="formula"><span class="symbol-line">STAL / TAL → 分配监督对象</span><span class="symbol-line">渐进损失 → 组合分支损失 → 反向传播得到梯度</span><span class="symbol-line">MuSGD → 利用梯度与优化器状态更新参数</span><span class="small">样本分配、损失组合和参数更新处于不同环节。Muon 也不改变一对一头已有的停止梯度路径。</span></div>
+        <p><a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html">拓展：从 SGD、Adam 到 Muon，梯度怎样变成参数更新 →</a></p>
+        <p class="source-ref">可直接展开：<a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html#history">历史梯度交互</a> · <a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html#shapes">输入、输出与卷积核形状</a> · <a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html#modes">强弱模式与矩阵更新交互</a> · <a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html#musgd">实际 MuSGD 的参数组与混合系数</a>。</p>
+        <h3 id="musgd-evidence">实验支持什么，又没有证明什么？</h3>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="MuSGD 与 SGD 的论文对照，可横向滚动"><table class="evidence-table"><caption>作者论文表 4：YOLO26 从零开始在 COCO 上训练；mAP 为平均精度。论文报告值，未在本地复现。</caption><thead><tr><th scope="col">优化器</th><th scope="col">训练轮数</th><th scope="col">COCO mAP</th></tr></thead><tbody><tr><th scope="row">SGD</th><td>600</td><td>47.0</td></tr><tr class="selected"><th scope="row">MuSGD</th><td>500</td><td>47.4</td></tr></tbody></table></div>
+        <p>这组结果说明，作者所测的 MuSGD 配置在更少轮数下取得更高精度。它没有单独证明收益全部来自正交化，也不能把轮数减少直接当作实际训练时间减少：还需比较每步耗时、达到同等精度的成本，以及重复实验的波动。</p>
+        <p class="boundary">Muon 是优化器中的矩阵更新方法；MuSGD 是 YOLO26 使用的混合方案。它们不同于渐进损失的双分支权重，不能把两套系数混为一谈。实际 Newton–Schulz 迭代是近似计算，也不等于把所有奇异值精确变为 1。</p>
+        <p class="source-ref">机制：<a href="https://kellerjordan.github.io/posts/muon/#the-design-of-muon" target="_blank" rel="noreferrer">Muon 原作者说明</a>；训练方案与结果：<a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS1" target="_blank" rel="noreferrer">YOLO26 §3.3.1</a>、<a href="https://arxiv.org/html/2606.03748v1#S4.SS3.SSS2" target="_blank" rel="noreferrer">§4.3.2、表 4</a>；实现：<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/optim/muon.py" target="_blank" rel="noreferrer">MuSGD</a>、<a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/engine/trainer.py#L1112-L1162" target="_blank" rel="noreferrer">参数分组与构造</a>。main 核对日期：2026-11-03，复现时需固定版本。</p>
+      </section>
+
+      <section id="evidence" class="chapter" aria-labelledby="evidence-title">
+        <p class="chapter-number">06 / 机制成立后，还要看实验支持的范围</p><h2 id="evidence-title">调度改善了指定设置的结果，<br>并不保证任何安排都更好。</h2>
+        <div id="experiment-foundation">
+          <h3>消融怎样说明一项设计的作用？</h3>
+          <p>完整模型表现更好，还不足以确定收益来自哪项设计。消融通过受控地删除、添加或替换因素，检查它在指定配置中的作用；数据、训练预算与评测口径需要可比，结果也应考虑随机波动。</p>
+          <p><a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html">延伸阅读：实验设计与结果判读 →</a></p>
+          <p class="source-ref">按问题查看：<a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html#ablation">消融怎样设计</a> · <a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html#experiment-types">常见实验与分析</a> · <a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html#interactions">组合与条件贡献</a> · <a href="../../../../04_数据与训练体系/交互图解/01_实验设计/实验设计与结果判读.html#validity">公平性与可信度</a>。</p>
+        </div>
+        <p>渐进损失是否有效，需要在其他条件可比的实验中检查。论文表 5 比较不同分支权重安排，以下摘取其中三组：</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="渐进损失消融表，可横向滚动"><table class="evidence-table"><caption>论文表 5：基于 YOLO11s 的 COCO 消融。括号顺序为（一对多权重，一对一权重），AP 为端到端平均精度；并非完整最终模型的全部收益。</caption><thead><tr><th scope="col">方案</th><th scope="col">起点</th><th scope="col">终点</th><th scope="col">端到端 AP</th></tr></thead><tbody>
+          <tr><th scope="row">固定等权</th><td>(0.5, 0.5)</td><td>(0.5, 0.5)</td><td>46.4</td></tr>
+          <tr><th scope="row">初期关闭一对一监督</th><td>(1.0, 0.0)</td><td>(0.1, 0.9)</td><td>46.4</td></tr>
+          <tr class="selected"><th scope="row">论文默认渐进权重</th><td>(0.8, 0.2)</td><td>(0.1, 0.9)</td><td>46.7</td></tr>
+        </tbody></table></div>
+        <p>默认调度比固定等权高 0.3 AP；将一对一分支初期权重降为零，没有获得同样收益。这支持在该实验设置中，从开始保留一对一监督、后期逐渐提高其权重的安排。</p>
+        <p>权重调度不会给部署增加一条新的前向分支，其直接作用发生在训练损失组合环节。它也不单独决定最终精度：检测头、数据、候选分配、优化器与训练设置仍共同影响结果。</p>
+        <p class="boundary">表中的 AP 是作者论文报告值，未在本地复现。交互进度只改变系数，不改变论文实验数据；示例加权损失的下降也不能用来证明精度提高。</p>
+        <p class="source-ref">直接依据：<a href="https://arxiv.org/html/2606.03748v1#S4.SS3.SSS3" target="_blank" rel="noreferrer">论文 §4.3.3、表 5</a>。比较整套模型时，还需区分结构、数据与训练策略的贡献。</p>
+      </section>
+
+      <section id="sources" class="chapter" aria-labelledby="sources-title">
+        <p class="chapter-number">07 / 将原理、实现与实验分别核对</p><h2 id="sources-title">对应原文与实现</h2>
+        <ol class="reading-order"><li><strong>§3.1 总体设计与图 2：</strong>定位双分支、标签分配、损失组合和优化器的职责。</li><li><strong>§3.3.2 渐进损失：</strong>对应阶段性动机与线性调度公式。</li><li><strong>§4.1 实现细节：</strong>核对 0.8 / 0.2 到 0.1 / 0.9 的默认设置。</li><li><strong>§4.3.3、表 5：</strong>检查固定等权、不同初始权重与渐进调度的实验差异。</li></ol>
+        <ul class="source-list">
+          <li><a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS2">YOLO26 英文原文 · §3.3.2</a>；<a href="https://arxiv.org/pdf/2606.03748v1">英文原论文 PDF</a>。</li>
+          <li><a href="https://arxiv.org/html/2606.03748v1" target="_blank" rel="noreferrer">Ultralytics YOLO26: Unified Real-Time End-to-End Vision Models</a>，Glenn Jocher 等，arXiv:2606.03748v1。原论文采用 CC BY 4.0 许可；本页为非官方中文解释与独立交互示例。</li>
+          <li><a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/loss.py#L1187-L1216" target="_blank" rel="noreferrer">官方 E2ELoss</a>：两份分支损失及其权重调度。代码中的分支权重缩写已在公式说明中定义。</li>
+          <li><a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/head.py#L180-L183" target="_blank" rel="noreferrer">官方 Detect.forward</a>：一对一分支的停止梯度输入。实现核对日期为 2026-11-03；main 链接后续可能变化。</li>
+          <li>基础说明：<a href="../02_YOLOv10/YOLOv10原理与演进.html#dual">YOLOv10 双分支与梯度</a> · <a href="../03_样本分配/样本分配与监督机制.html#training-data">样本分配怎样形成监督</a>。</li>
+          <li>新增对应：<a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS3">英文原文 · STAL</a> · <a href="https://arxiv.org/html/2606.03748v1#S3.SS2.SSS1" target="_blank" rel="noreferrer">论文 §3.2.1 双分支分配</a> · <a href="../05_SimOTA与TAL/SimOTA与TAL样本分配.html#sources">SimOTA 与 TAL 的原论文及实现入口</a>。</li>
+          <li>优化器：<a href="https://arxiv.org/html/2606.03748v1#S3.SS3.SSS1">英文原文 · MuSGD</a> · <a href="../../../../04_数据与训练体系/交互图解/02_优化器/优化器从梯度到参数更新.html#sources">优化器拓展的原始来源与实现入口</a>。</li>
+        </ul>
+        <noscript><p class="no-script">正文、公式与消融表不依赖 JavaScript。默认交互示例为调度起点：一对多权重 0.8、一对一权重 0.2。中点为 0.45 / 0.55，终点为 0.1 / 0.9。若两份示例损失固定为 4 和 2，对应加权总值为 3.6、2.9、2.2；这些变化仅由系数造成，不代表真实训练结果。</p></noscript>
+      </section>
+    </div>
+  </div>
+  <footer><p>内容范围：YOLO26 的整体定位、渐进损失、STAL 与 MuSGD。样本分配、实验设计和优化器基础通过独立拓展衔接。本文区分原理解释、指定实现、交互计算和论文实验，不由示例数值推算训练成效。</p><details><summary>离线使用与知识库复用</summary><p>页面的样式与交互均包含在本文件中，无须安装依赖或联网，不读取或上传个人数据。只有主动打开外部来源需要联网。本地文献与基础页面采用相对链接，迁移到网站时需保留目录关系或调整这些链接。</p><p>可通过 #position、#problem、#progressive-loss、#training、#gradient-path、#stal、#assignment、#musgd、#musgd-evidence、#evidence 等锚点直接定位内容，也可嵌入网站静态页面。</p></details></footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let mode = 'progressive';
+  const coefficients = progress => mode === 'fixed' ? [0.5, 0.5] : [0.8 - 0.7 * progress, 0.2 + 0.7 * progress];
+  function renderSchedule() {
+    const percentage = Number($('training-progress').value);
+    const [many, one] = coefficients(percentage / 100);
+    $('progress-value').value = `${percentage}%`;
+    $('many-weight').textContent = many.toFixed(3);
+    $('one-weight').textContent = one.toFixed(3);
+    $('many-segment').style.flexBasis = `${many * 100}%`;
+    $('one-segment').style.flexBasis = `${one * 100}%`;
+    $('weight-bar').setAttribute('aria-label', `一对多权重百分之${(many * 100).toFixed(1)}，一对一权重百分之${(one * 100).toFixed(1)}`);
+    $('live-formula').textContent = `L总 = ${many.toFixed(3)} × L一对多 + ${one.toFixed(3)} × L一对一`;
+    $('example-result').textContent = `${many.toFixed(3)} × 4 + ${one.toFixed(3)} × 2 = ${(many * 4).toFixed(3)} + ${(one * 2).toFixed(3)} = ${(many * 4 + one * 2).toFixed(3)}`;
+    let explanation;
+    if (mode === 'fixed') {
+      explanation = `当前进度 ${percentage}%。固定等权方案始终将两份分支损失各乘以 0.500，系数不随训练进度变化。两份损失的实际数值仍可能不同。`;
+    } else if (percentage === 0) {
+      explanation = '当前为渐进调度起点。一对多获得较高权重，一对一仍以非零权重参与训练。';
+    } else if (percentage === 100) {
+      explanation = '当前为渐进调度终点。一对一权重提高到 0.900，一对多仍保留 0.100。权重变化不会解除一对一输入的停止梯度。';
+    } else {
+      const comparison = many > one ? '一对多系数仍高于一对一系数' : '一对一系数已高于一对多系数';
+      explanation = `当前进度 ${percentage}%。${comparison}；两条分支都保持非零权重。此处只表示损失组合系数的变化，不判断模型已经学到了什么。`;
+    }
+    $('schedule-explanation').textContent = explanation;
+    for (const button of $('schedule-modes').querySelectorAll('button')) {
+      button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
+    }
+  }
+  $('training-progress').addEventListener('input', renderSchedule);
+  $('schedule-modes').addEventListener('click', event => {
+    const button = event.target.closest('button[data-mode]');
+    if (button) { mode = button.dataset.mode; renderSchedule(); }
+  });
+  let stalMode = 'paper';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svgNode = (tag, attrs, text) => {
+    const node = document.createElementNS(svgNS, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  for (let coordinate = 0; coordinate <= 48; coordinate += 8) {
+    const pos = 30 + coordinate * 5;
+    $('stal-grid-lines').append(svgNode('line', { x1: pos, y1: 30, x2: pos, y2: 270, class: 'spatial-grid-line' }), svgNode('line', { x1: 30, y1: pos, x2: 270, y2: pos, class: 'spatial-grid-line' }), svgNode('text', { x: pos, y: 291, 'text-anchor': 'middle' }, coordinate), svgNode('text', { x: 23, y: pos + 5, 'text-anchor': 'end' }, coordinate));
+  }
+  function renderStal() {
+    const width = Number($('gt-width').value), height = Number($('gt-height').value);
+    const adjust = d => stalMode === 'paper' ? (d < 8 ? 16 : d) : stalMode === 'code' ? Math.max(d, 16) : d;
+    const windowWidth = adjust(width), windowHeight = adjust(height);
+    $('gt-width-value').value = `${width} px`;
+    $('gt-height-value').value = `${height} px`;
+    for (const [id, w, h] of [['stal-gt', width, height], ['stal-window', windowWidth, windowHeight]]) {
+      const rect = $(id);
+      rect.setAttribute('x', 150 - w * 2.5); rect.setAttribute('y', 150 - h * 2.5);
+      rect.setAttribute('width', w * 5); rect.setAttribute('height', h * 5);
+    }
+    $('stal-points').replaceChildren();
+    let count = 0;
+    for (let x = 4; x < 48; x += 8) for (let y = 4; y < 48; y += 8) {
+      const eligible = Math.abs(x - 24) < windowWidth / 2 && Math.abs(y - 24) < windowHeight / 2;
+      if (eligible) count++;
+      $('stal-points').append(svgNode('circle', { cx: 30 + x * 5, cy: 30 + y * 5, r: 3.5, class: `spatial-point${eligible ? ' eligible' : ''}` }));
+    }
+    $('stal-dimensions').replaceChildren(document.createTextNode(`原始 GT：${width} × ${height} px`), document.createElement('br'), document.createTextNode(`候选窗口：${windowWidth} × ${windowHeight} px`));
+    $('stal-count').textContent = count;
+    const rule = stalMode === 'tal' ? '普通 TAL 直接使用原始 GT 作为筛选区域。' : stalMode === 'paper' ? '论文规则：小于 8 的边补为 16，其他边保持不变。' : '当前实现：小于 16 的边补为 16，其他边保持不变。';
+    $('stal-explanation').textContent = `${rule}回归目标仍是 ${width} × ${height} px。${count === 0 ? '该局部网格没有有效候选，不能仅靠提高 Top-k 解决。' : '这些位置仅取得候选资格，后续仍需匹配。'}`;
+    $('stal-grid-desc').textContent = `原始 GT 为 ${width}×${height} 像素；候选窗口为 ${windowWidth}×${windowHeight} 像素；该层有 ${count} 个参考点具有空间候选资格。`;
+    for (const button of $('stal-modes').querySelectorAll('button')) button.setAttribute('aria-pressed', String(button.dataset.stal === stalMode));
+  }
+  $('stal-modes').addEventListener('click', event => { const button = event.target.closest('button[data-stal]'); if (button) { stalMode = button.dataset.stal; renderStal(); } });
+  for (const id of ['gt-width', 'gt-height']) $(id).addEventListener('input', renderStal);
+  renderStal();
+  const links = [...document.querySelectorAll('.toc a')];
+  const observer = new IntersectionObserver(entries => {
+    const first = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!first) return;
+    for (const link of links) {
+      if (link.hash === `#${first.target.id}`) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    }
+  }, { rootMargin: '-8% 0px -60% 0px' });
+  for (const section of document.querySelectorAll('.chapter')) observer.observe(section);
+  function revealHash() {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!target) return;
+    for (let parent = target; parent; parent = parent.parentElement) {
+      if (parent.tagName === 'DETAILS') parent.open = true;
+    }
+    requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+  }
+  window.addEventListener('hashchange', revealHash);
+  renderSchedule();
+  if (location.hash) revealHash();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="理解消融实验、常见算法实验、组合关系、实验公平性与结果判读。以 YOLO26 为局部案例，区分单项作用、整体表现与证据边界。">
+<title>实验设计与结果判读</title>
+<style>
+:root{color-scheme:light;--paper:#f6f4ed;--surface:#fffef9;--ink:#202e29;--muted:#58665f;--line:#d5dcd2;--green:#245b44;--soft:#e6eee2;--warm:#89501c;--warm-soft:#f3ead9;--radius:16px}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.9 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}a{color:var(--green);text-underline-offset:4px}a:hover{color:var(--warm)}button,input{font:inherit}button,summary,input[type=checkbox]{cursor:pointer}:focus-visible{outline:3px solid var(--warm);outline-offset:4px}[hidden]{display:none!important}.wrap{width:min(1160px,calc(100% - 64px));margin:auto}.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;padding:20px 0;border-bottom:1px solid var(--line);font-size:13px}.top a{display:inline-flex;align-items:center;min-height:44px}.eyebrow{font-size:12px;letter-spacing:.12em;font-weight:700;color:var(--green);margin:0 0 12px}h1,h2{font-family:"Noto Serif CJK SC","Source Han Serif SC","SimSun",serif;line-height:1.4}h1{font-size:clamp(38px,5vw,60px);margin:0 0 28px;letter-spacing:-.025em}h2{font-size:clamp(27px,3vw,35px);margin:0 0 24px}h3{font-size:21px;line-height:1.5;margin:28px 0 14px}p{margin:0 0 18px}.hero{padding:56px 0 40px;max-width:920px}.lead{font-size:21px;line-height:1.9;max-width:850px}.small,.scope{font-size:13px;color:var(--muted)}.hero .scope{max-width:820px}.layout{display:grid;grid-template-columns:154px minmax(0,1fr);gap:46px;align-items:start}.toc{position:sticky;top:24px;font-size:13px}.toc a{display:block;padding:10px 0;text-decoration:none;color:var(--muted);border-bottom:1px solid var(--line)}.toc a:hover,.toc a[aria-current=location]{color:var(--green);font-weight:700}.content{min-width:0}.chapter{padding:36px 0 48px;border-top:1px solid var(--line)}.chapter>p{max-width:840px}.chapter-number{font:12px/1.5 Consolas,"Microsoft YaHei",sans-serif;color:var(--green);letter-spacing:.08em;margin-bottom:13px}.core{font-size:19px}.boundary{font-size:14px;color:var(--warm);padding-top:15px;border-top:1px solid var(--line);margin-top:24px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:24px 0}.pair>div{padding:20px;background:var(--soft);border-radius:10px}.pair h3{margin:0 0 10px;font-size:18px}.pair p{font-size:15px;margin:0}.steps{padding-left:23px}.steps li{padding-left:3px;margin-bottom:18px}.steps p{font-size:15px;margin:5px 0}.table-scroll{overflow-x:auto;margin:22px 0}table{border-collapse:collapse;width:100%;text-align:left;font-size:14px;font-variant-numeric:tabular-nums}caption{text-align:left;color:var(--muted);font-size:13px;margin-bottom:12px}th,td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-weight:600}thead th{white-space:nowrap}.types-table{min-width:630px}.combination-table{min-width:490px}.case-table{min-width:500px}.case-table .selected th,.case-table .selected td{background:var(--soft)}details{border-top:1px solid var(--line);padding:16px 0}summary{font-weight:600;min-height:44px;padding:5px 2px;align-content:center}details[open]>summary{margin-bottom:14px}details p{font-size:15px}.demo{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);margin:28px 0;overflow:hidden}.demo-head{padding:22px 24px 16px}.demo-head h3{margin:0 0 8px}.demo-head p{font-size:13px;color:var(--muted);margin:0}.demo-body{padding:24px;border-top:1px solid var(--line)}fieldset{margin:0;padding:0;border:0;min-width:0}legend{font-size:15px;font-weight:600;padding:0;margin-bottom:12px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}.check{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 0;font-size:15px;cursor:pointer}.check input{width:20px;height:20px;flex:none;accent-color:var(--green)}.check span{min-width:0}.readout{padding:18px 20px;background:var(--soft);border-radius:10px;margin-top:20px}.readout h4{font-size:18px;margin:0 0 10px}.readout p{font-size:15px;margin:0}.readout.confounded{background:var(--warm-soft)}.demo-foot{padding:15px 24px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}.formula{background:var(--soft);padding:18px 20px;border-radius:10px;margin:22px 0;font-size:16px;overflow-wrap:anywhere}.formula p:last-child{margin-bottom:0}.formula sub{font-size:.75em}.source-ref{font-size:13px}.source-list{padding-left:22px;font-size:14px}.source-list li{margin-bottom:15px;overflow-wrap:anywhere}.return-link{display:inline-flex;align-items:center;min-height:44px}footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:13px;margin-top:24px}.skip-link{position:absolute;left:20px;top:-90px;padding:12px;background:var(--surface);z-index:10}.skip-link:focus{top:8px}.no-script{padding:18px;background:var(--warm-soft);font-size:14px}
+@media(max-width:1040px){.wrap{width:calc(100% - 40px)}.layout{grid-template-columns:125px minmax(0,1fr);gap:28px}}
+@media(max-width:760px){.wrap{width:calc(100% - 32px)}.top{padding:12px 0;font-size:12px}.hero{padding:38px 0 30px}h1{font-size:40px}.lead{font-size:18px}.layout{display:block}.toc{position:static;display:flex;flex-wrap:wrap;gap:0 18px;margin-bottom:22px}.toc>p{display:none}.toc a{font-size:12px;padding:9px 0;min-height:44px}.chapter{padding:30px 0 34px}h2{font-size:29px}.pair,.checks{grid-template-columns:1fr;gap:12px}.pair>div{padding:18px}.demo-head,.demo-body,.demo-foot{padding-left:18px;padding-right:18px}.demo-head h3{font-size:20px}.readout{padding:16px}.core{font-size:18px}th,td{padding:10px 8px}footer{padding-bottom:24px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white}.wrap{width:100%}.layout{display:block}.toc,.checks{display:none}.hero{padding-top:20px}h1{font-size:34px}.chapter{padding:20px 0}.table-scroll{overflow:visible}table{min-width:0!important}a{color:inherit}}
+</style>
+<link rel="stylesheet" href="../../../共用阅读组件/term-cards.css">
+<script src="../../../03_视觉任务体系/目标检测/交互图解/01_YOLO整体框架/terms-yolo.js" defer></script>
+<script src="../共用图解/terms-training.js" defer></script>
+<script src="../../../共用阅读组件/term-cards.js" defer></script>
+<meta name="robots" content="noindex"><style>.review-back{padding:4px 5%;background:#fafaf8}.review-back a{display:inline-flex;align-items:center;min-height:36px;color:#435d52;font:14px/1.5 system-ui,sans-serif;text-decoration:none}.review-back a:is(:focus-visible,:hover){text-decoration:underline}</style></head>
+<body><div class="review-back"><a href="../../../../index.html">← 复习目录</a></div>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="top wrap"><span>数据与训练体系 / 实验设计</span><a href="../../../03_视觉任务体系/目标检测/交互图解/04_YOLO26/YOLO26原理与演进.html#evidence">← YOLO26 · 消融与适用边界</a></header>
+<main id="main" class="wrap">
+  <section class="hero" aria-labelledby="page-title"><p class="eyebrow">实验设计与结果判读</p><h1 id="page-title">先确定要回答的问题，<br>再判断实验能支持什么。</h1><p class="lead">完整方案表现更好，还不足以确定哪项设计带来了收益。实验设计通过明确对照、控制其他影响因素和检查结果波动，使算法判断有可以核对的证据。</p><p class="scope">本文解释消融实验、常见实验类型、组合关系、公平性与结果判读。YOLO26 仅作为局部案例；交互用于检查单项归因中的混杂因素，不运行训练，也不生成虚构的精度结果。</p></section>
+  <div class="layout">
+    <aside class="toc" aria-label="页内目录"><p class="eyebrow">本页目录</p><a href="#purpose">实验要回答什么</a><a href="#ablation">消融怎样设计</a><a href="#experiment-types">常见实验与分析</a><a href="#interactions">组合与条件贡献</a><a href="#validity">公平性与可信度</a><a href="#reading-results">怎样读结果</a><a href="#label-pipeline">标签链路排查案例</a><a href="#sources">来源与返回入口</a></aside>
+    <div class="content">
+      <section id="purpose" class="chapter" aria-labelledby="purpose-title"><p class="chapter-number">01 / 整体表现与单项作用，是不同问题</p><h2 id="purpose-title">方案有效，<br>还要说明有效在哪里、因为什么。</h2><p>一个新检测器可能同时改变网络、训练数据、优化器、训练时长和后处理。最终精度更高，说明完整配置取得了更好的测量结果；要进一步判断某个模块的作用，需要设计对应的受控比较。</p><div class="pair"><div><h3>整体比较</h3><p>回答完整方案相对其他方案表现如何，需要同时交代精度、计算成本与评测条件。</p></div><div><h3>单项归因</h3><p>回答某项设计在特定背景配置中起了什么作用，通常通过只改变该因素的对照来检查。</p></div></div><p class="core">实验名称服务于问题。消融、敏感性、泛化和效率实验分别提供不同证据，不能用一项结果代替其他问题的验证。</p><p>同一个实验可以承担多个分析目的。以下分类按主要问题组织，并非彼此排斥的固定目录。</p></section>
+
+      <section id="ablation" class="chapter" aria-labelledby="ablation-title"><p class="chapter-number">02 / 通过受控的删、加或替换，定位设计作用</p><h2 id="ablation-title">消融的核心是形成对照，<br>并保留可解释的差异。</h2><p class="core">消融实验通过受控地删除、添加或替换某项设计，检查结果如何变化，从而判断它在所测条件下的贡献与代价。</p><p>被改变的因素可以是网络模块、输入信息、损失函数、分配规则、数据增强或权重调度。以渐进损失为例，需要比较的是同一双分支框架下的固定权重与渐进权重。</p>
+        <ol class="steps"><li><strong>把判断写成可以检验的问题。</strong><p>例如：在同一双分支检测器中，渐进权重能否改善端到端检测结果？先确定主要评价指标与对照配置。</p></li><li><strong>明确参照方案与实验方案。</strong><p>固定等权作为参照，渐进权重作为实验方案。基线就是用于比较的参照，不必是最旧或最弱的模型。</p></li><li><strong>控制与问题无关的变化。</strong><p>保持可比的数据划分、结构、初始化策略、增强、优化器、训练预算和评测流程。结构变动时未必能逐个复用参数，但要说明初始化与训练方式。</p></li><li><strong>完成相应训练与统一评测。</strong><p>训练策略的改动通常需要分别训练后比较。只在推理时关闭某个分支，测量的是推理依赖或输出路径，不能直接替代训练消融。</p></li><li><strong>检查收益、代价与波动。</strong><p>除主要指标外，还应查看相关资源开销、失败类型及重复运行的变化。结论限定在实际测试的配置与条件中。</p></li></ol>
+        <div class="demo" id="control-demo"><div class="demo-head"><h3>这组比较，能否把差异归因于渐进损失？</h3><p>假设两组分别使用固定等权与渐进权重。勾选它们之间还发生了哪些变化，查看这些变化如何影响单项归因。</p></div><div class="demo-body"><fieldset><legend>除权重调度外，两组还改变了：</legend><div class="checks" id="confound-controls"><label class="check"><input type="checkbox" value="数据与划分"><span>数据来源或训练评测划分</span></label><label class="check"><input type="checkbox" value="输入分辨率"><span>输入分辨率</span></label><label class="check"><input type="checkbox" value="优化器或增强"><span>优化器或数据增强</span></label><label class="check"><input type="checkbox" value="训练预算或预训练"><span>训练预算或预训练来源</span></label></div></fieldset><div id="control-result" class="readout" role="status"><h4 id="control-title">具备单项对照的基本条件</h4><p id="control-body">在这些因素保持可比的前提下，可以进一步评估权重调度的作用；仍需检查重复运行、指标口径和实验记录，不能据此直接宣告方法有效。</p></div></div><div class="demo-foot">控件仅表示实验方案中是否引入其他可能原因，不测量效果。多项同时变化的配置仍可用于整体比较，但无法仅凭最终差异确定渐进损失的独立贡献。</div></div>
+        <p class="boundary">“只改变一个因素”服务于单项归因。研究多个因素的相互作用，需要明确的组合实验；研究完整部署方案，则可以比较整套配置，但应如实限定结论。</p>
+      </section>
+
+      <section id="experiment-types" class="chapter" aria-labelledby="types-title"><p class="chapter-number">03 / 用问题理解常见实验</p><h2 id="types-title">每类实验，<br>都应有明确的判断对象。</h2><div class="table-scroll" tabindex="0" role="region" aria-label="常见实验与分析对照，可横向滚动"><table class="types-table"><caption>按主要目的分类；同一项实验可同时支持多种分析</caption><thead><tr><th scope="col">实验或分析</th><th scope="col">主要回答什么</th><th scope="col">视觉算法中的设计与判读</th></tr></thead><tbody>
+          <tr><th scope="row">整体对比实验</th><td>完整方案相对参照表现如何？</td><td>在相同任务与明确协议下比较精度、速度和资源。若数据或训练预算不同，应注明，不能将全部差异归为结构收益。</td></tr>
+          <tr><th scope="row">消融实验</th><td>某项设计在当前配置中起了什么作用？</td><td>删除、添加或替换模块、损失或训练策略，控制其他影响因素，并检查代价。</td></tr>
+          <tr><th scope="row">参数敏感性实验</th><td>效果是否依赖很窄的参数设置？</td><td>改变权重、匹配数量或阈值，观察合理范围内的稳定性。最优参数搜索与敏感性分析相关，但目的不完全相同。</td></tr>
+          <tr><th scope="row">泛化实验</th><td>在未用于开发的新数据条件下，能力能否保持？</td><td>在保留的产线、设备、产品批次或外部数据集上评估，并说明是否做过目标域适配。</td></tr>
+          <tr><th scope="row">鲁棒性实验</th><td>输入受到特定干扰后，性能如何变化？</td><td>控制光照、模糊、噪声或遮挡强度，测量退化曲线。对某种扰动稳定，不代表对所有变化都稳定。</td></tr>
+          <tr><th scope="row">效率与收敛实验</th><td>收益需要多少训练或推理资源？</td><td>比较收敛曲线、运行时间、吞吐量与显存，说明硬件、精度、批次大小及计时边界。</td></tr>
+          <tr><th scope="row">数据效率实验</th><td>标注或样本减少后，方案还能否有效学习？</td><td>使用不同训练数据量，并控制评测集及其他训练条件。小数据子集的抽样方式也会影响结果。</td></tr>
+          <tr><th scope="row">误差分析与可视化</th><td>主要在哪里失败，可能为什么？</td><td>按类别、尺寸或场景分析漏检与定位误差，用可视化追查原因。它是分析手段，不单独证明某项设计的因果作用。</td></tr>
+        </tbody></table></div>
+        <details id="generalization-robustness"><summary>泛化与鲁棒性为什么相关，却不能完全等同？</summary><p>泛化关注未见数据上的表现；鲁棒性关注面对特定干扰或变化时的稳定性。新相机的数据可能同时改变分布与噪声，两者会重叠，但实验应明确主要研究对象。</p><p>如果使用目标产线数据微调后再评测，应将其视为带适配的设定，不能与完全未接触目标域的测试直接混为同一结论。</p></details>
+        <details id="efficiency"><summary>为什么参数量和计算量少，还不能直接认定部署更快？</summary><p>参数量描述模型权重规模，计算量估计描述运算数量；实际延迟还受算子实现、访存、并行方式与部署后端影响。应在指定硬件和执行流程下实测。</p><p>延迟需要注明是否包含预处理、模型前向、数据传输和后处理；吞吐量也应说明批次与并发条件。比较优化器时，“相同轮数”“相同训练时间”和“达到相同精度所需成本”分别回答不同问题。</p></details>
+      </section>
+
+      <section id="interactions" class="chapter" aria-labelledby="interactions-title"><p class="chapter-number">04 / 单项效果会依赖已有配置</p><h2 id="interactions-title">逐项叠加的增益，<br>是有条件的贡献。</h2><p>逐项叠加表描述方案怎样逐步形成：每增加一项，都与此前配置比较。这有助于解释完整方案，但某一步的增益依赖已经存在的其他设计。</p><p>要研究渐进损失与小目标感知标签分配（STAL）的关系，可以设计下面四组。此表只是说明性实验结构，不是论文原表，也没有填入未经测量的精度值。</p><div class="table-scroll" tabindex="0" role="region" aria-label="两因素组合实验设计，可横向滚动"><table class="combination-table"><caption>其他条件可比时，分别检查主效应及相互作用</caption><thead><tr><th scope="col">配置</th><th scope="col">渐进损失</th><th scope="col">STAL</th></tr></thead><tbody><tr><th scope="row">基础配置</th><td>不启用，使用固定参照权重</td><td>不启用，使用参照分配</td></tr><tr><th scope="row">仅启用渐进损失</th><td>启用</td><td>不启用</td></tr><tr><th scope="row">仅启用 STAL</th><td>不启用</td><td>启用</td></tr><tr><th scope="row">同时启用两项</th><td>启用</td><td>启用</td></tr></tbody></table></div>
+        
+        <figure class="network-figure"><img src="../共用图解/ablation.svg" width="360" height="265" loading="lazy" alt="四种配置排成两行：STAL 关和开两种条件下，都从固定权重横向比较到渐进权重。"><figcaption><strong>横着看贡献，上下比差值。</strong>同一行从左到右，只有权重调度不同；若两行的增量差超出测量波动，就要考虑 STAL 与权重调度在所选指标上的相互作用。跨对角线同时改变了两项，不能作单项归因。原理参照 <a href="https://www.itl.nist.gov/div898/handbook/pri/section3/pri3331.htm">NIST 两水平全因子设计</a>；本图不含实测分数。</figcaption></figure>
+        <div class="formula"><p>未使用 STAL 时，渐进损失的增量：<br>AP<sub>仅渐进</sub> − AP<sub>基础</sub></p><p>已使用 STAL 时，渐进损失的增量：<br>AP<sub>两项</sub> − AP<sub>仅STAL</sub></p></div><p>AP 表示平均精度。如果两种增量在考虑测量波动后仍有明显差异，说明需要关注因素间的相互作用。因此，不能把各次实验的增益视为固定常数，再任意相加预测新组合。</p><p class="boundary">删除完整模型中的一个模块，测得的是“其他设计已经存在时，移除该模块的影响”。它与“把该模块单独加入基础模型的影响”不一定相同。</p></section>
+
+      <section id="validity" class="chapter" aria-labelledby="validity-title"><p class="chapter-number">05 / 可信结论需要可比条件与清晰记录</p><h2 id="validity-title">比较之前，<br>先检查证据成立的条件。</h2><ol class="steps"><li><strong>数据与划分是否可比？</strong><p>说明数据来源、标注规则与训练评测划分。工业图像可按工件、采集批次或时间分组，避免高度相似的样本跨集合泄漏；具体分组依据应符合实际部署目标。</p></li><li><strong>是否把测试集用于反复选择方案？</strong><p>训练集用于拟合，验证集用于选择配置，保留测试集用于最终评估。使用交叉验证时也应说明哪些数据参与了选择；预处理的学习过程不能偷看评测数据。</p></li><li><strong>训练与计算预算是否说明？</strong><p>记录模型配置、预训练来源、增强、优化器、轮数与硬件。相同轮数未必意味着相同时间成本；预算不同的比较应解释其研究问题。</p></li><li><strong>结果波动是否被考虑？</strong><p>条件允许时重复运行，报告均值与波动，并说明波动来自随机种子、数据划分还是其他来源。标准差、均值标准误和置信区间含义不同，应准确标注。</p></li><li><strong>指标口径与结果筛选是否一致？</strong><p>说明模型选择规则、类别汇总方式、后处理、阈值与计时边界。不要把一组最好单次结果与另一组平均结果直接作同口径比较。</p></li></ol><p class="source-ref">参考：<a href="https://neurips.cc/public/guides/PaperChecklist" target="_blank" rel="noreferrer">NeurIPS 实验设置、统计与计算资源规范</a>；<a href="https://scikit-learn.org/stable/common_pitfalls.html#data-leakage" target="_blank" rel="noreferrer">scikit-learn 数据泄漏说明</a>；<a href="https://scikit-learn.org/stable/modules/cross_validation.html" target="_blank" rel="noreferrer">训练、验证与交叉验证</a>。</p></section>
+
+      <section id="reading-results" class="chapter" aria-labelledby="results-title"><p class="chapter-number">06 / 区分测量结果、机制解释与推广范围</p><h2 id="results-title">读到一个提升，<br>应先确定它支持哪句话。</h2><p>YOLO26 论文表 5 在基于 YOLO11s 的 COCO 消融中，比较不同双分支权重安排。以下摘取固定等权与论文默认调度：</p><div class="table-scroll" tabindex="0" role="region" aria-label="YOLO26 论文消融案例，可横向滚动"><table class="case-table"><caption>作者报告值，未经本地复现；权重顺序为（一对多，一对一）</caption><thead><tr><th scope="col">方案</th><th scope="col">起点 → 终点</th><th scope="col">端到端 AP</th></tr></thead><tbody><tr><th scope="row">固定等权</th><td>(0.5, 0.5) → (0.5, 0.5)</td><td>46.4</td></tr><tr class="selected"><th scope="row">默认渐进调度</th><td>(0.8, 0.2) → (0.1, 0.9)</td><td>46.7</td></tr></tbody></table></div><div class="pair"><div><h3>结果直接支持的判断</h3><p>在这组实验报告的配置下，默认渐进调度取得比固定等权高 0.3 AP 的结果。</p></div><div><h3>仍需其他证据的判断</h3><p>是否对新数据集也有增益、增益是否超出随机波动、收益来自何种具体机制，都需要相应实验继续检查。</p></div></div><p>机制解释说明设计为何可能有效，消融检查受控改变后的结果，两者相互支持。单次结果不构成普遍保证，也不能仅凭一个 AP 增量给所有创新排价值顺序；资源成本、稳定性与目标场景同样重要。</p><p class="source-ref">案例依据：<a href="https://arxiv.org/html/2606.03748v1#S4.SS3.SSS3" target="_blank" rel="noreferrer">YOLO26 论文 §4.3.3、表 5</a>；完整的分支机制见 <a href="../../../03_视觉任务体系/目标检测/交互图解/04_YOLO26/YOLO26原理与演进.html#progressive-loss">渐进损失交互</a>。</p></section>
+
+      <section id="label-pipeline" class="chapter" aria-labelledby="label-pipeline-title">
+        <p class="chapter-number">07 / 从已记录的训练排查看证据边界</p><h2 id="label-pipeline-title">指标异常时，<br>先确认监督有没有正确进入训练。</h2>
+        <p>一份既有 YOLOX 实践记录中，先出现训练损失下降、评估损失不随之下降，以及某类别无法检出的现象；后续又记录了评估损失升高而 mAP 仍上升。作者起初考虑过拟合、优化器与学习率调度，随后检查了数据链路。</p>
+        <ol class="steps"><li><strong>从格式转换追查标注。</strong><p>记录指出，VisDrone 的 txt 转 VOC 时，类别删改造成部分本应保留的目标未进入转换结果。这会改变训练中实际可见的 GT，使部分真实目标缺少正监督，并可能受到背景监督。</p></li><li><strong>将标注重新画回图像。</strong><p>重新转换后，通过可视化框和类别检查标注是否保留。有效检查应同时核对类别映射、目标数量、坐标格式与图像尺寸；文件能被解析不等于标注语义正确。</p></li><li><strong>继续检查训练读取环节。</strong><p>旧记录还指出，所用 VOC 读取流程会丢失部分目标，随后进行了修改并重新训练。具体代码来源、过滤条件和版本尚未恢复，因此只能称为当时实现中的问题记录，不能归为官方 YOLOX 的通用 bug。</p></li></ol>
+        <p>这个案例支持的工程判断是：调模型之前，需要确认原标注、转换结果、增强后的标注及送入损失的 GT 相互一致。只修正数据格式的外观，或者只观察总损失，都不足以确认监督正确。</p>
+        <details id="diagnostic-hypotheses"><summary>旧记录中的几个判断，为什么需要重新限定？</summary><p><strong>训练损失下降、评估损失不降：</strong>可能与过拟合有关，也应排查标注、分布、增强和损失计算口径。它是排查信号，不能仅凭曲线确定原因。</p><p><strong>评估损失低于训练损失：</strong>训练增强、更困难的训练样本及训练/评估模式差异均可能影响比较。训练集与评估集数量不同，不能单独解释按样本归一化后的损失均值高低。</p><p><strong>损失与 mAP 不同向：</strong>损失约束训练目标，mAP 受定位质量、排序与评测阈值等影响。需要结合分项损失、逐类召回与误检漏检样例分析，不要求两者逐轮严格反向变化。</p><p><strong>小学习率不能再更新梯度：</strong>梯度仍可被计算，变小的通常是参数更新量；是否出现数值上近乎无变化，还需检查梯度、学习率、精度与实际更新记录。</p></details>
+        <p class="boundary">证据边界：当前有当年的文字与曲线截图，没有恢复完整配置、日志和修复前后统一评测。标签修复与调度也曾一起改动，无法据此分离各项收益；不补写精度提升或最优参数。原记录中的“测试集”是否实际上承担验证集用途，仍待原实验资料确认。</p>
+        <p>后续复核应固定数据划分与其他配置，比较修复前后的标签数量和对应训练结果。具体学习率尝试及未填写的末次结果保留在本地历史台账，不升级为通用配方。</p>
+        <p><a href="../../../03_视觉任务体系/目标检测/交互图解/06_YOLOX/index.html#supervision">返回 YOLOX：GT 怎样形成正负监督</a> · <a href="../02_优化器/优化器从梯度到参数更新.html#choice">优化器与调度的比较条件</a></p>
+      </section>
+
+      <section id="sources" class="chapter" aria-labelledby="sources-title"><p class="chapter-number">08 / 通用方法与模型案例分开核对</p><h2 id="sources-title">来源与返回入口</h2><ul class="source-list"><li><a href="https://neurips.cc/public/guides/PaperChecklist" target="_blank" rel="noreferrer">NeurIPS Paper Checklist</a>：实验设置、可复现性、统计不确定性与计算资源报告。本文的实验分类是按目的组织的说明，不是该规范规定的互斥分类。</li><li><a href="https://scikit-learn.org/stable/common_pitfalls.html" target="_blank" rel="noreferrer">scikit-learn Common pitfalls</a> 与 <a href="https://scikit-learn.org/stable/modules/cross_validation.html" target="_blank" rel="noreferrer">Cross-validation</a>：数据泄漏、数据划分与模型选择的基本边界。</li><li><a href="https://arxiv.org/html/2606.03748v1" target="_blank" rel="noreferrer">Ultralytics YOLO26 作者论文</a>：表 5 为实际案例，表 2 可用于理解逐项叠加；四组组合设计是本文独立说明性模板，不是作者已完成的实验。</li><li><a href="https://arxiv.org/html/2606.03748v1#S4.SS3.SSS3">YOLO26 英文原文 · 对应消融</a>。原论文采用 CC BY 4.0 许可；本页为非官方中文原理解释。</li><li>标签链路案例来自既有 YOLOX 调参文字和曲线，仅按当时记录描述；原件与完整出处在本地核对台账中保留，本站不托管原始记录。</li></ul><a class="return-link" href="../../../03_视觉任务体系/目标检测/交互图解/04_YOLO26/YOLO26原理与演进.html#evidence">返回 YOLO26 · 消融与适用边界 →</a><noscript><p class="no-script">正文、表格与实验设计模板均可直接阅读。交互需要 JavaScript：其他因素保持可比，仅具备单项对照的基本条件；若同时改变数据、分辨率或训练设置，就引入了其他可能原因，需要限定单项归因。</p></noscript></section>
+    </div>
+  </div>
+  <footer><p>本文为通用实验基础，不局限于 YOLO。样式与交互自包含，可离线阅读；仅主动访问外部来源需要联网。控件不运行训练、不计算统计显著性，也不生成实验成绩。</p><p>内容核对日期：2026-11-03。本地链接采用知识库相对路径，迁移时需保留目录关系或调整链接。</p></footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  function renderControl() {
+    const changed = [...$('confound-controls').querySelectorAll('input:checked')].map(input => input.value);
+    $('control-result').classList.toggle('confounded', changed.length > 0);
+    $('control-title').textContent = changed.length ? '引入其他可能原因，需限定单项归因' : '具备单项对照的基本条件';
+    $('control-body').textContent = changed.length
+      ? `除权重调度外，还改变了：${changed.join('、')}。最终差异可能同时来自这些因素；这组结果可以比较完整配置，但不足以单独确定渐进损失的贡献。`
+      : '在这些因素保持可比的前提下，可以进一步评估权重调度的作用；仍需检查重复运行、指标口径和实验记录，不能据此直接宣告方法有效。';
+  }
+  $('confound-controls').addEventListener('change', renderControl);
+  const links = [...document.querySelectorAll('.toc a')];
+  const observer = new IntersectionObserver(entries => {
+    const first = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!first) return;
+    for (const link of links) {
+      if (link.hash === `#${first.target.id}`) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    }
+  }, {rootMargin:'-8% 0px -60% 0px'});
+  for (const section of document.querySelectorAll('.chapter')) observer.observe(section);
+  function revealHash() {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!target) return;
+    for (let parent = target; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') parent.open = true;
+    requestAnimationFrame(() => target.scrollIntoView({block:'start'}));
+  }
+  window.addEventListener('hashchange', revealHash);
+  renderControl();
+  if (location.hash) revealHash();
+})();
+</script>
+</body>
+</html>

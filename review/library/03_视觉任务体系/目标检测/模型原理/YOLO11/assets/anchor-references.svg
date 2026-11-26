@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="430" viewBox="0 0 360 430" role="img" aria-labelledby="title desc">
+  <title id="title">同一个 80×8 细框，两种几何起点</title>
+  <desc id="desc">标注框为 (4,16) 到 (84,24)。上图把 32×32 假设模板与目标中心对齐，目标宽度是模板的 2.5 倍，高度是 0.25 倍；这些比例不是网络输出值。下图用参考点 (44,20)，到左、上、右、下四边依次为 40、4、40、4 像素。两图的目标与模板按同一比例绘制。</desc>
+  <style>text{font:14px 'Microsoft YaHei',system-ui,sans-serif;fill:#26372d}.heading{font-size:18px;font-weight:700}.key{font-size:15px;font-weight:700;fill:#275b40}.note{font-size:13px;fill:#4e6054}.target{fill:#e1eee2;stroke:#306944;stroke-width:2}.prior{fill:none;stroke:#965a24;stroke-width:2;stroke-dasharray:5 3}.guide{fill:none;stroke:#64796b;stroke-width:1}.center{fill:#233f30;stroke:white;stroke-width:1}</style>
+  <text x="12" y="25" class="heading">同一个 80×8 细框，从哪里开始回归？</text>
+  <text x="12" y="51" class="key">① Anchor-based：给定参考宽高</text>
+  <rect x="60" y="108" width="240" height="24" class="target"/><rect x="132" y="72" width="96" height="96" class="prior"/><circle cx="180" cy="120" r="3.5" class="center"/>
+  <path class="guide" d="M229 82h13"/><text x="246" y="87">32×32 模板</text>
+  <text x="65" y="125">标注框</text>
+  <text x="12" y="192">从 32×32 到 80×8：宽 ×2.5，高 ×0.25。</text>
+  <text x="12" y="213" class="note">这是宽高比例，不是各版本检测头的原始输出。</text>
+  <line x1="12" y1="231" x2="348" y2="231" stroke="#cad5cb"/>
+  <text x="12" y="250" class="key">② YOLO11：给定参考点，不给宽高</text>
+  <rect x="60" y="290" width="240" height="24" class="target"/>
+  <path class="guide" d="M60 284v-7h120v7m0-7h120v7"/>
+  <text x="119" y="274" text-anchor="middle" class="note">左 40</text><text x="240" y="274" text-anchor="middle" class="note">右 40</text>
+  <path class="guide" d="M180 290v24"/><circle cx="180" cy="302" r="3.5" class="center"/>
+  <text x="86" y="308" class="note">上 4 / 下 4</text>
+  <path class="guide" d="M184 306l19 19h12"/><text x="220" y="330" class="note">P = (44,20)</text>
+  <text x="12" y="357">P 到左、上、右、下：40、4、40、4 像素。</text>
+  <text x="12" y="380">除以步长 8：5、0.5、5、0.5 格。</text>
+  <text x="12" y="404" class="note">标注框：(4,16) → (84,24)。上图模板仅作示意；</text>
+  <text x="12" y="423" class="note">取相同中心方便比较，不代表两类模型的通用网格规则。</text>
+</svg>

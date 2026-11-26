@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 349" width="360" height="349" role="img" aria-labelledby="title desc">
+  <title id="title">INP-Former：用图内原型重建当前特征</title><desc id="desc">冻结视觉 Transformer 提取多层 token。一条路径经瓶颈形成查询，另一条由 INP 提取器生成图内原型，提供键和值。解码输出按位置与原编码特征比较。</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path fill="#476353" d="M0 0 8 4 0 8Z"/></marker></defs>
+  <style>
+    text{font:15px "Microsoft YaHei","PingFang SC",sans-serif;fill:#22362b;text-anchor:middle}
+    .major{font-size:17px;font-weight:700}.label{font-size:14px;font-weight:600;fill:#465a4b}.minor{font-size:13px}
+    .wire{stroke:#476353;stroke-width:1.7;fill:none;stroke-linejoin:round;stroke-linecap:round}
+    .node,.ref,.score{stroke-width:1.25}.node{fill:#fbfaf4;stroke:#859786}.ref{fill:#e1ecde;stroke:#4f7256}.score{fill:#f7ebd6;stroke:#99763a}
+  </style>
+  <text x="180" y="20" class="major">待检图像 → 冻结 ViT 编码</text>
+  <path d="M180 27V42" class="wire" marker-end="url(#arrow)"/>
+  <rect class="ref" x="39" y="44" width="280" height="36" rx="7"/>
+  <text x="179" y="67">当前图像的多层特征 token</text>
+  <path d="M179 80V92M81 92H249" class="wire"/>
+  <path d="M81 92V110" class="wire" marker-end="url(#arrow)"/>
+  <path d="M249 92V110" class="wire" marker-end="url(#arrow)"/>
+  <path d="M319 62H345V299H325" class="wire" marker-end="url(#arrow)"/>
+  <rect class="node" x="8" y="113" width="145" height="51" rx="7"/>
+  <text x="81" y="135" class="major">瓶颈融合</text>
+  <text x="81" y="153" class="minor">保留位置需求</text>
+  <rect class="ref" x="169" y="113" width="158" height="51" rx="7"/>
+  <text x="248" y="135" class="major">INP 提取器</text>
+  <text x="248" y="153" class="minor">查询汇聚图内信息</text>
+  <path d="M81 165V208" class="wire" marker-end="url(#arrow)"/>
+  <path d="M248 165V208" class="wire" marker-end="url(#arrow)"/>
+  <text x="114" y="190" class="label">位置 Q</text>
+  <text x="187" y="190" class="label">原型 K、V</text>
+  <rect class="node" x="22" y="211" width="294" height="47" rx="7"/>
+  <text x="169" y="232" class="major">原型引导解码</text>
+  <text x="169" y="250" class="minor">各位置从少量原型取值重建</text>
+  <path d="M169 259V277" class="wire" marker-end="url(#arrow)"/>
+  <rect class="score" x="20" y="281" width="304" height="38" rx="7"/>
+  <text x="171" y="305">重建特征 vs 原特征：余弦距离</text>
+  <text x="173" y="342" class="label">按空间位置汇成异常图</text>
+</svg>
